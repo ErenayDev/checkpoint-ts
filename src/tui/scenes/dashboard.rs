@@ -1,7 +1,8 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::Stylize,
+    text::Line,
     widgets::{Block, Borders, Paragraph},
 };
 use throbber_widgets_tui::{BRAILLE_SIX, Throbber, ThrobberState};
@@ -151,19 +152,19 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &mut DashboardState) {
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(6), // Header
-            Constraint::Length(6), // Current Checkpoint
-            Constraint::Length(4), // Quick Actions
-            Constraint::Length(6), // Timeline
+            Constraint::Length(4), // Header
+            Constraint::Length(4), // Current Checkpoint
+            Constraint::Length(4), // Timeline
             Constraint::Min(4),    // Status/Logs
+            Constraint::Length(3), // Quick Actions
         ])
         .split(area);
 
     draw_header(frame, main_layout[0], state);
     draw_current_checkpoint(frame, main_layout[1], state);
-    draw_quick_actions(frame, main_layout[2]);
-    draw_timeline(frame, main_layout[3], state);
-    draw_status_logs(frame, main_layout[4], state);
+    draw_timeline(frame, main_layout[2], state);
+    draw_status_logs(frame, main_layout[3], state);
+    draw_quick_actions(frame, main_layout[4]);
 }
 
 fn draw_header(frame: &mut Frame, area: Rect, state: &DashboardState) {
@@ -184,14 +185,12 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &DashboardState) {
     let line2_right = format!("Execution: {}", state.execution_time);
     let line2 = format!("{:<width$}{}", line2_left, line2_right, width = half_width);
 
-    let combined_text = format!("\n{}\n{}", line1, line2);
+    let combined_text = format!("{}\n{}", line1, line2);
 
     frame.render_widget(
-        Paragraph::new(combined_text).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Dashboard".blue().bold()),
-        ),
+        Paragraph::new(combined_text).block(Block::default().borders(Borders::ALL).title(
+            Line::from(vec!["[ ".into(), "Dashboard".blue().bold(), " ]".into()]),
+        )),
         area,
     );
 }
@@ -217,27 +216,16 @@ fn draw_current_checkpoint(frame: &mut Frame, area: Rect, state: &DashboardState
     let line2_right = format!("Stack depth: {}", state.stack_depth);
     let line2 = format!("{:<width$}{}", line2_left, line2_right, width = half_width);
 
-    let combined_text = format!("\n{}\n{}", line1, line2);
+    let combined_text = format!("{}\n{}", line1, line2);
 
     frame.render_widget(
-        Paragraph::new(combined_text).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Current Checkpoint".yellow().bold()),
-        ),
-        area,
-    );
-}
-
-fn draw_quick_actions(frame: &mut Frame, area: Rect) {
-    let actions_text = "\n[C] Continue    [S] Skip Function    [E] Edit Variables    [P] Profile    [V] View Stack    [H] History    [Q] Quit";
-
-    frame.render_widget(
-        Paragraph::new(actions_text).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Quick Actions".green().bold()),
-        ),
+        Paragraph::new(combined_text).block(Block::default().borders(Borders::ALL).title(
+            Line::from(vec![
+                "[ ".into(),
+                "Current Checkpoint".yellow().bold(),
+                " ]".into(),
+            ]),
+        )),
         area,
     );
 }
@@ -250,7 +238,11 @@ fn draw_timeline(frame: &mut Frame, area: Rect, state: &mut DashboardState) {
             Paragraph::new("No functions executed yet").block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title("Execution Timeline".yellow().bold()),
+                    .title(Line::from(vec![
+                        "[ ".into(),
+                        "Execution Timeline".yellow().bold(),
+                        " ]".into(),
+                    ])),
             ),
             area,
         );
@@ -275,11 +267,13 @@ fn draw_timeline(frame: &mut Frame, area: Rect, state: &mut DashboardState) {
         };
 
         let block = if i == 0 {
-            Block::default().borders(borders).title(
+            Block::default().borders(borders).title(Line::from(vec![
+                "[ ".into(),
                 format!("Execution Timeline (Last {})", display_functions.len())
                     .yellow()
                     .bold(),
-            )
+                " ]".into(),
+            ]))
         } else {
             Block::default().borders(borders)
         };
@@ -332,9 +326,39 @@ fn draw_status_logs(frame: &mut Frame, area: Rect, state: &DashboardState) {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title("Status & Logs".cyan().bold()),
+                    .title(Line::from(vec![
+                        "[ ".into(),
+                        "Status & Logs".cyan().bold(),
+                        " ]".into(),
+                    ])),
             )
             .scroll((0, 0)),
+        area,
+    );
+}
+
+fn draw_quick_actions(frame: &mut Frame, area: Rect) {
+    let actions_text = "[C] Continue    [S] Skip Function    [E] Edit Variables    [P] Profile    [V] View Stack    [H] History    [Q] Quit";
+    frame.render_widget(
+        Paragraph::new(actions_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(Line::from(vec![
+                        "[ ".into(),
+                        "Quick Actions".green().bold(),
+                        " ]".into(),
+                    ]))
+                    .title_bottom(
+                        Line::from(vec![
+                            "[ ".into(),
+                            "Made by ErenayDev <3".magenta().italic(),
+                            " ]".into(),
+                        ])
+                        .alignment(Alignment::Right),
+                    ),
+            )
+            .alignment(Alignment::Center),
         area,
     );
 }

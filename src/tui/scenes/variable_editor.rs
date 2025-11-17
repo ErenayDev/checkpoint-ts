@@ -157,17 +157,15 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &VariableEditorState) {
         ])
         .split(area);
 
-    draw_function_info(frame, main_layout[0], &state);
-    draw_parameters_table(frame, main_layout[1], &state);
-    draw_local_variables_table(frame, main_layout[2], &state);
+    draw_function_info(frame, main_layout[0], state);
+    draw_parameters_table(frame, main_layout[1], state);
+    draw_local_variables_table(frame, main_layout[2], state);
     draw_actions(frame, main_layout[3]);
 }
 
 fn draw_function_info(frame: &mut Frame, area: Rect, state: &VariableEditorState) {
     let function_name = state
-        .current_function
-        .as_ref()
-        .map(|f| f.as_str())
+        .current_function.as_deref()
         .unwrap_or("Unknown");
     let line_number = state.current_line.unwrap_or(0);
 

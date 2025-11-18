@@ -1,6 +1,6 @@
 [package]
 name = "checkpoint-ts"
-version = "0.1.0"
+version = "0.1.1"
 description = "Debug TypeScript/JavaScript via TUI. Checkpoint functions, edit state, skip execution."
 authors = ["ErenayDev <erenaydev@proton.me>"]
 license = "MIT"

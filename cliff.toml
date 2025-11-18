@@ -18,15 +18,8 @@ body = """
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | striptags | trim | upper_first }}
-    {% for commit in commits
-        | filter(attribute="scope")
-        | sort(attribute="scope") %}
-        - **{{ commit.scope }}**: {% if commit.breaking %}[**BREAKING**] {% endif %}{{ commit.message | upper_first }}{% if commit.links %} ({{ commit.links | join(sep=", ") }}){% endif %}
-    {% endfor -%}
-    {% for commit in commits
-        | reject(attribute="scope")
-        | sort(attribute="message") %}
-        - {% if commit.breaking %}[**BREAKING**] {% endif %}{{ commit.message | upper_first }}{% if commit.links %} ({{ commit.links | join(sep=", ") }}){% endif %}
+    {% for commit in commits %}
+        - {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{% if commit.breaking %}[**BREAKING**] {% endif %}{{ commit.message | upper_first }}{% if commit.links %} ({{ commit.links | join(sep=", ") }}){% endif %}
     {% endfor -%}
 {% endfor -%}
 
@@ -38,7 +31,7 @@ footer = """
 trim = true
 render_always = true
 postprocessors = [
-    { pattern = '\$REPO', replace = "https://github.com/your-username/your-repo" },
+    { pattern = '\$REPO', replace = "https://github.com/ErenayDev/checkpoint-ts" },
     { pattern = '<!-- \d+ -->', replace = "" },
 ]
 
@@ -49,7 +42,7 @@ require_conventional = false
 split_commits = false
 commit_preprocessors = [
     { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}]($REPO/issues/${2}))" },
-    { pattern = '\$REPO', replace = "https://github.com/your-username/your-repo" },
+    { pattern = '\$REPO', replace = "https://github.com/ErenayDev/checkpoint-ts" },
 ]
 protect_breaking_commits = true
 commit_parsers = [
@@ -67,7 +60,7 @@ commit_parsers = [
     { message = "^chore\\(pr\\)", skip = true },
     { message = "^chore\\(pull\\)", skip = true },
     { message = "^chore", group = "⚙️ Miscellaneous Tasks" },
-    { body = ".*security", group = "🛡️ Security" },
+    { body = ".*security", group = "🛡��� Security" },
     { message = "^revert", group = "◀️ Revert" },
     { message = ".*", group = "💼 Other" },
 ]

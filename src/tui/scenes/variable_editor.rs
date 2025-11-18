@@ -164,11 +164,7 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &VariableEditorState) {
 }
 
 fn draw_function_info(frame: &mut Frame, area: Rect, state: &VariableEditorState) {
-    let function_name = state
-        .current_function
-        .as_ref()
-        .map(|f| f.as_str())
-        .unwrap_or("Unknown");
+    let function_name = state.current_function.as_deref().unwrap_or("Unknown");
     let line_number = state.current_line.unwrap_or(0);
 
     let info_text = format!(

@@ -157,9 +157,9 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &VariableEditorState) {
         ])
         .split(area);
 
-    draw_function_info(frame, main_layout[0], &state);
-    draw_parameters_table(frame, main_layout[1], &state);
-    draw_local_variables_table(frame, main_layout[2], &state);
+    draw_function_info(frame, main_layout[0], state);
+    draw_parameters_table(frame, main_layout[1], state);
+    draw_local_variables_table(frame, main_layout[2], state);
     draw_actions(frame, main_layout[3]);
 }
 

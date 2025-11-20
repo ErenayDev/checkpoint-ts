@@ -111,7 +111,7 @@ impl PerformanceProfileState {
 
     pub fn export_csv(&mut self) {}
 
-    pub fn filter_functions(&mut self, functions: Vec<Function>) {}
+    pub fn _filter_functions(&mut self, _functions: Vec<Function>) {}
 }
 
 pub fn draw(frame: &mut Frame, area: Rect, state: &PerformanceProfileState) {

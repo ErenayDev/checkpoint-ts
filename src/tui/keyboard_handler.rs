@@ -84,7 +84,7 @@ impl TuiApp {
                     .add_log("Skip option changed".to_string());
             }
             (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => {
+            | (KeyModifiers::CONTROL, KeyCode::Char('C')) => {
                 self.navigate_back();
             }
             _ => {}
@@ -165,7 +165,7 @@ impl TuiApp {
                 self.navigate_back();
             }
             (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => {
+            | (KeyModifiers::CONTROL, KeyCode::Char('C')) => {
                 self.navigate_back();
             }
             _ => {}

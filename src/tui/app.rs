@@ -6,6 +6,7 @@ use color_eyre::Result;
 use crossterm::event::{Event, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Scene {
     Dashboard,

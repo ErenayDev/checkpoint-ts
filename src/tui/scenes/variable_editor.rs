@@ -5,6 +5,7 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Paragraph, Row, Table},
 };
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct VariableEditorState {
     pub current_function: Option<String>,
@@ -23,6 +24,7 @@ pub struct Variable {
     pub is_editing: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum SelectedSection {
     Parameters,
@@ -86,20 +88,20 @@ impl VariableEditorState {
         Self::default()
     }
 
-    pub fn set_function(&mut self, function: String, line: u32) {
+    pub fn _set_function(&mut self, function: String, line: u32) {
         self.current_function = Some(function);
         self.current_line = Some(line);
     }
 
-    pub fn add_parameter(&mut self, variable: Variable) {
+    pub fn _add_parameter(&mut self, variable: Variable) {
         self.function_parameters.push(variable);
     }
 
-    pub fn add_local_variable(&mut self, variable: Variable) {
+    pub fn _add_local_variable(&mut self, variable: Variable) {
         self.local_variables.push(variable);
     }
 
-    pub fn update_variable_value(
+    pub fn _update_variable_value(
         &mut self,
         section: SelectedSection,
         index: usize,
@@ -120,7 +122,7 @@ impl VariableEditorState {
         }
     }
 
-    pub fn start_editing(&mut self, section: SelectedSection, index: usize) {
+    pub fn _start_editing(&mut self, section: SelectedSection, index: usize) {
         match section {
             SelectedSection::Parameters => {
                 if let Some(var) = self.function_parameters.get_mut(index) {
@@ -136,7 +138,7 @@ impl VariableEditorState {
         }
     }
 
-    pub fn stop_editing(&mut self) {
+    pub fn _stop_editing(&mut self) {
         for var in &mut self.function_parameters {
             var.is_editing = false;
         }

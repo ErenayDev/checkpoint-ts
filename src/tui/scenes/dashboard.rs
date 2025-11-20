@@ -29,6 +29,7 @@ pub struct TimelineFunction {
     pub duration: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum FunctionStatus {
     Completed,
@@ -99,7 +100,7 @@ impl DashboardState {
         self.throbber_state.calc_next();
     }
 
-    pub fn set_current_checkpoint(
+    pub fn _set_current_checkpoint(
         &mut self,
         function: String,
         line: u32,
@@ -111,11 +112,11 @@ impl DashboardState {
         self.add_log(format!("Paused at {}() line {}", function, line));
     }
 
-    pub fn add_timeline_function(&mut self, function: TimelineFunction) {
+    pub fn _add_timeline_function(&mut self, function: TimelineFunction) {
         self.timeline_functions.push(function);
     }
 
-    pub fn update_function_status(
+    pub fn _update_function_status(
         &mut self,
         name: &str,
         status: FunctionStatus,
@@ -138,11 +139,11 @@ impl DashboardState {
         }
     }
 
-    pub fn update_execution_time(&mut self, time: String) {
+    pub fn _update_execution_time(&mut self, time: String) {
         self.execution_time = time;
     }
 
-    pub fn set_status(&mut self, status: String) {
+    pub fn _set_status(&mut self, status: String) {
         self.status = status.clone();
         self.add_log(format!("Status: {}", status));
     }

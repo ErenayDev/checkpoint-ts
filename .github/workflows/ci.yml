@@ -2,6 +2,11 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/**"
   push:
     branches:
       - main

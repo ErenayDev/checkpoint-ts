@@ -23,3 +23,6 @@ target
 
 ## Cargo-run-bin specific
 .bin/
+
+## Generated folder by Node
+node_modules

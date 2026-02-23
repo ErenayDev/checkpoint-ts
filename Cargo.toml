@@ -1,42 +1,35 @@
-[package]
-name = "checkpoint-ts"
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/parser",
+    "crates/shared",
+]
+
+[workspace.package]
 version = "0.1.2"
-description = "Interactive checkpoint system for TypeScript/JavaScript development. Debug with TUI, inspect state, skip functions, inject values."
-authors = ["ErenayDev <erenaydev@proton.me>"]
-license = "MIT"
 edition = "2024"
+license = "MIT"
 repository = "https://github.com/ErenayDev/checkpoint-ts"
+description = "Interactive checkpoint system for TypeScript/JavaScript development. Debug with TUI, inspect state, skip functions, inject values."
+authors = ["ErenayDev erenaydev@proton.me"]
 homepage = "https://github.com/ErenayDev/checkpoint-ts"
 documentation = "https://docs.rs/checkpoint-ts"
 readme = "README.md"
 keywords = ["debug", "typescript", "javascript", "tui", "checkpoint"]
 categories = ["development-tools::debugging", "command-line-utilities"]
-rust-version = "1.87"
-exclude = [
-    "target/",
-    ".git/",
-    ".github/",
-    "tools/",
-    "*.log"
-]
 
-[[bin]]
-name = "checkpoint"
-path = "src/main.rs"
-
-[workspace]
-members = ["tools/cargo-bin"]
-
-[package.metadata.bin]
-cargo-watch = { version = "8.5.2" }
-
-[dependencies]
-chrono = "0.4.42"
-color-eyre = "0.6.3"
-crossterm = { version = "0.29.0", features = ["event-stream"] }
-futures = "0.3.31"
-ratatui = "0.29.0"
-serde = "1.0.228"
-serde_json = "1.0.145"
-throbber-widgets-tui = "0.9.0"
-tokio = { version = "1.40.0", features = ["full"] }
+[workspace.dependencies]
+shared_memory = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+swc_core = { version = "54", features = [
+    "__common",
+    "__ecma",
+    "ecma_ast",
+    "ecma_parser",
+    "ecma_transforms_typescript",
+    "ecma_codegen",
+    "ecma_visit",
+    "__testing_transform",
+] }

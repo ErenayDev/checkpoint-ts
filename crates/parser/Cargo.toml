@@ -1,0 +1,10 @@
+[package]
+name = "checkpoint-parser"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+checkpoint-shared = { path = "../shared" }
+swc_core.workspace = true
+serde.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,10 @@
+{
+  "version": "0.1.2",
+  "files": {
+    "index.ts": {
+      "hash": "520e29cab2709ba655d0e93929f29f66163e23b8f61f6de3f9a6070b2ea968fb",
+      "last_transform": "2026-01-19T12:54:31.064317420+00:00",
+      "transform_path": "examples/transform_examples/.checkpoint/transforms/index.ts"
+    }
+  }
+}

@@ -1,6 +1,0 @@
-[DEBUG] SHM opened successfully
-[DEBUG] Entering main loop
-[DEBUG] Sending ready message
-[DEBUG] Received message: {"type":"load_app"}
-[DEBUG] Load app command received
-[DEBUG] Importing: /home/erenay/Desktop/Checkpoint-ts/examples/transform_examples/.checkpoint/transforms/index.ts

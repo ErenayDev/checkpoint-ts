@@ -23,7 +23,7 @@ concurrency:
 jobs:
   fmt:
     name: fmt
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -37,7 +37,7 @@ jobs:
         run: cargo fmt -- --check
   clippy:
     name: clippy
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: read
       checks: write
@@ -54,7 +54,7 @@ jobs:
         uses: clechasseur/rs-clippy-check@v5
   doc:
     name: doc
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust nightly

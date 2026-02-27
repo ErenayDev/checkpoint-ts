@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::sync::Arc;
-use swc_core::common::{DUMMY_SP, FileName, Span, Spanned, SyntaxContext};
-use swc_core::common::{FilePathMapping, SourceMap};
+use swc_core::common::{
+    DUMMY_SP, FileName, FilePathMapping, GLOBALS, Mark, SourceMap, Span, Spanned, SyntaxContext,
+};
 use swc_core::ecma::ast::{
     ArrayLit, ArrowExpr, AssignExpr, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, CondExpr,
     EsVersion, Expr, ExprOrSpread, FnDecl, FnExpr, ForStmt, Ident, IdentName, IfStmt, ImportDecl,
@@ -10,11 +11,11 @@ use swc_core::ecma::ast::{
     ModuleItem, NewExpr, ObjectLit, ParenExpr, Pass, Pat, Program, Prop, PropOrSpread, SeqExpr,
     Str, TaggedTpl, UnaryExpr, UpdateExpr, VarDeclarator, WhileStmt, YieldExpr,
 };
-use swc_core::ecma::codegen::Config;
-use swc_core::ecma::codegen::{Emitter, text_writer::JsWriter};
+use swc_core::ecma::codegen::{Config, Emitter, text_writer::JsWriter};
 use swc_core::ecma::parser::{Parser, StringInput, Syntax};
 use swc_core::ecma::transforms::testing::test_inline;
-use swc_core::ecma::transforms::typescript::strip_type;
+// use swc_core::ecma::transforms::typescript::strip_type;
+use swc_core::ecma::transforms::typescript::{Config as TsConfig, typescript};
 use swc_core::ecma::visit::{VisitMut, VisitMutWith};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -595,6 +596,9 @@ pub fn transform_code(
     file_path: &str,
     minify: bool,
 ) -> Result<String, TransformError> {
+    let unresolved_mark = Mark::new();
+    let top_level_mark = Mark::new();
+
     let syntax = if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
         Syntax::Typescript(Default::default())
     } else {
@@ -609,7 +613,14 @@ pub fn transform_code(
         .map_err(|e| TransformError::ParseError(format!("{:?}", e)))?;
     let mut program = Program::Module(module);
     if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
-        program.visit_mut_with(&mut strip_type());
+        //    program.visit_mut_with(&mut strip_type());
+        GLOBALS.set(&Default::default(), || {
+            program.mutate(typescript(
+                TsConfig::default(),
+                unresolved_mark,
+                top_level_mark,
+            ))
+        })
     }
     let mut collector = AsyncCollector::new();
     program.visit_mut_with(&mut collector);

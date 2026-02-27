@@ -1,4 +1,4 @@
-# checkpoint.ts
+# Checkpoint.ts
 
 [![codecov](https://codecov.io/gh/ErenayDev/checkpoint-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/ErenayDev/checkpoint-ts)
 [![CI](https://github.com/ErenayDev/checkpoint-ts/workflows/CI/badge.svg)](https://github.com/ErenayDev/checkpoint-ts/actions)
@@ -7,144 +7,51 @@
 [![Rust Version](https://img.shields.io/badge/rust-1.85+-orange.svg)](https://www.rust-lang.org)
 [![Downloads](https://img.shields.io/crates/d/checkpoint-ts.svg)](https://crates.io/crates/checkpoint-ts)
 
-
-> Stop rerunning 10 functions to debug the 11th.
-
-Interactive checkpoint system for TypeScript/JavaScript development.
-Inspect state, skip functions, inject values, profile execution.
-
-**Like Minecraft parkour map checkpoints, but for your code**
-
-Written in Rust 🦀 | Works with Bun, Node, Deno
-
----
+Interactive checkpoint system for TypeScript/JavaScript.
 
 ## Quick Start
 
-```bash
-# Install
-cargo install checkpoint-ts
+See [INSTALLATION.md](./doc/INSTALLATION.md)
 
-# Run with checkpoints
-checkpoint myfile.ts
+## Key Features
 
-# Use specific runtime
-checkpoint myfile.ts --interpreter bun # deno, node
-```
-
----
-
-## How it works
-
-Checkpoint transforms your code by injecting instrumentation points at function calls and variable assignments. When execution hits a checkpoint, it pauses and opens an interactive TUI where you can:
-
-- Inspect current variable states
-- Edit variable values on the fly
-- Skip function execution and inject cached results
-- Continue execution with modified state
-- Profile execution time for each function
-
-The system uses AST analysis to identify checkpoint opportunities and maintains a serializable execution context throughout your program's runtime.
-
----
-
-## Features
-
-**Interactive Debugging**
-Pause execution at any function call and inspect the complete variable state without restarting your program.
-
-**Function Skipping**
-Skip expensive function calls during debugging and use cached or manually injected return values.
-
-**State Manipulation**
-Edit variables in real-time through the TUI and continue execution with your modifications.
-
-**Execution Profiling**
-Measure and track execution time for each function call with millisecond precision.
-
-**Runtime Agnostic**
-Works seamlessly with Bun, Node.js, and Deno through adaptive runtime detection.
-
----
-
-## Installation
-
-### From Cargo
-```bash
-cargo install checkpoint-ts
-```
-
-### From Source
-```bash
-git clone https://github.com/ErenayDev/checkpoint-ts
-cd checkpoint.ts
-cargo build --release
-```
-
----
+When you run program, first parses your code with AST's and injects checkpointing functions.
+Then injects runtime codes and then a TUI appears to you view.
+When you wanna checkpoint in a point, the function name and its parameters, variables written to cache(in your .checkpoint folder)
+If you wanna run the checkpointed function, just do it. You can edit the parameters, variables for the function.
+You can profile execution times for each function.
+Also you can edit whatever you want. really. try it yourself.
 
 ## Usage
 
 ### Basic Usage
+
 ```bash
 checkpoint script.ts
 ```
 
 ### Runtime Selection
+
+Currently only [Bun](https://bun.sh) is available. Check again in future for more runtimes
+
 ```bash
 checkpoint script.ts --interpreter bun
-checkpoint script.ts --interpreter node
-checkpoint script.ts --interpreter deno
 ```
 
-### Pre-instrumented Files
+### Pre-instrumented Files (not available yet)
+
 ```bash
-checkpoint --instrumented script.instrumented.ts
+checkpoint --instrumented script.ts
 ```
-
----
-
-## TUI Interface
-
-The terminal interface provides three main views:
-
-**Checkpoint Navigator**
-Shows current execution position, available checkpoints, and execution timeline.
-
-**State Editor**
-Interactive table for viewing and editing variable values at the current checkpoint.
-
-**Execution Visualizer**
-Performance metrics and execution flow visualization with timing information.
-
----
 
 ## Supported Features
 
-- Function-level checkpoints
-- Variable state inspection and editing
-- Execution timing and profiling
-- Cached result injection
-- TypeScript and JavaScript support
-- ES modules and CommonJS compatibility
-- Async/await support (experimental)
-
----
-
-## Limitations
-
-- Circular references in objects are not fully supported
-- Some complex TypeScript syntax may not be instrumented correctly
-- Async operations have limited checkpoint support
-- Maximum object depth for serialization is 10 levels
-
----
+Covers like 85% TypeScript/JavaScript ecosystem codes. I'm planning optimize code and performance with switching to [oxc](https://oxc.rs) from [swc](https://swc.rs).
+And for dead-code elimination, I wanna use the [jsshaker](https://github.com/kermanx/jsshaker) for O(n) to O(1) optimization
 
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
----
 
 ## License
 
@@ -154,26 +61,20 @@ This project is licensed under the MIT license ([LICENSE] or <http://opensource.
 
 [LICENSE]: ./LICENSE
 
----
-
 ## Sponsors
 
 Special thanks to our sponsors who make this project possible:
 
-**#1 Sponsors**
-- [Become a sponsor](https://github.com/sponsors/ErenayDev)
-
-**#2 Sponsors**
-- [Become a sponsor](https://github.com/sponsors/ErenayDev)
-
-**#3 Sponsors**
-- [Become a sponsor](https://github.com/sponsors/ErenayDev)
-
----
+<p align="center">
+  <a href="https://github.com/sponsors/ErenayDev">
+    <img src="https://raw.githubusercontent.com/ErenayDev/ErenayDev/refs/heads/main/sponsorkit/sponsors.svg" alt="ErenayDev's sponsors" />
+  </a>
+</p>
 
 ## Acknowledgments
 
 Built with:
+
 - [SWC](https://swc.rs/) for TypeScript/JavaScript parsing
 - [Ratatui](https://ratatui.rs/) for terminal user interface
 - [Tokio](https://tokio.rs/) for async runtime support

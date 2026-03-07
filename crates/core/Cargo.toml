@@ -1,17 +1,17 @@
 [package]
 name = "checkpoint-ts"
-description = "Interactive checkpoint system for TypeScript/JavaScript development. Debug with TUI, inspect state, skip functions, inject values."
-authors = ["ErenayDev erenaydev@proton.me"]
-license = "MIT"
-repository = "https://github.com/ErenayDev/checkpoint-ts"
-homepage = "https://github.com/ErenayDev/checkpoint-ts"
-documentation = "https://docs.rs/checkpoint-ts"
-readme = "README.md"
-keywords = ["debug", "typescript", "javascript", "tui", "checkpoint"]
-categories = ["development-tools::debugging", "command-line-utilities"]
 version.workspace = true
 edition.workspace = true
-rust-version = "1.87"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+authors.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 exclude = ["target/", ".git/", ".github/", "tools/", "*.log"]
 
 [[bin]]

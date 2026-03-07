@@ -5,10 +5,11 @@ members = ["crates/core", "crates/parser", "crates/shared"]
 [workspace.package]
 version = "0.1.3"
 edition = "2024"
-license = "MIT"
+rust-version = "1.87"
+license = "GPL-3.0-or-later"
 repository = "https://github.com/ErenayDev/checkpoint-ts"
 description = "Interactive checkpoint system for TypeScript/JavaScript development. Debug with TUI, inspect state, skip functions, inject values."
-authors = ["ErenayDev erenaydev@proton.me"]
+authors = ["ErenayDev <erenaydev@proton.me>"]
 homepage = "https://github.com/ErenayDev/checkpoint-ts"
 documentation = "https://docs.rs/checkpoint-ts"
 readme = "README.md"

@@ -2,10 +2,10 @@
 
 [![codecov](https://codecov.io/gh/ErenayDev/checkpoint-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/ErenayDev/checkpoint-ts)
 [![CI](https://github.com/ErenayDev/checkpoint-ts/workflows/CI/badge.svg)](https://github.com/ErenayDev/checkpoint-ts/actions)
-[![Crates.io](https://img.shields.io/crates/v/checkpoint-ts.svg)](https://crates.io/crates/checkpoint-ts)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust Version](https://img.shields.io/badge/rust-1.85+-orange.svg)](https://www.rust-lang.org)
-[![Downloads](https://img.shields.io/crates/d/checkpoint-ts.svg)](https://crates.io/crates/checkpoint-ts)
+[![Crates.io](https://img.shields.io/crates/v/checkpoint-ts)](https://crates.io/crates/checkpoint-ts)
+[![License: GPL-3.0-or-later](https://img.shields.io/crates/l/checkpoint-ts)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![Rust Version](https://img.shields.io/crates/msrv/checkpoint-ts?label=rust&color=orange)](https://www.rust-lang.org)
+[![Downloads](https://img.shields.io/crates/d/checkpoint-ts.svg?color=blue)](https://crates.io/crates/checkpoint-ts)
 
 Interactive checkpoint system for TypeScript/JavaScript.
 
@@ -57,7 +57,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 Copyright (c) ErenayDev <erenaydev@proton.me>
 
-This project is licensed under the MIT license ([LICENSE] or <http://opensource.org/licenses/MIT>)
+This project is licensed under the GPL-3.0-or-later license ([LICENSE] or <https://www.gnu.org/licenses/gpl-3.0.html>)
 
 [LICENSE]: ./LICENSE
 

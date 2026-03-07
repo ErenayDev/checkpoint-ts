@@ -1,0 +1,10 @@
+{
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "fix:prettier": "bun --bun run lint:prettier -- --write",
+    "lint:prettier": "prettier --config .prettierrc --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.8.1"
+  }
+}

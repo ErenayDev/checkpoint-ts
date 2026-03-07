@@ -185,9 +185,15 @@ impl DashboardState {
     pub fn continue_execution(&mut self) {
         if self.paused {
             if let Some(ref bridge) = self.ipc_bridge {
-                let _ = bridge.send_json(&serde_json::json!({
+                if bridge
+                    .send_json(&serde_json::json!({
                     "type": "continue"
-                }));
+                                    }))
+                    .is_err()
+                {
+                    self.add_log("Failed to send continue command".to_string());
+                    return;
+                }
             }
             self.paused = false;
             self.pending_checkpoint = None;
@@ -224,7 +230,11 @@ impl DashboardState {
                 self.status = "Starting".to_string();
                 self.add_log("Runtime started, loading application...".to_string());
 
-                let _ = bridge.load_app();
+                if let Err(e) = bridge.load_app() {
+                    self.status = "Error".to_string();
+                    self.add_log(format!("Failed to load application: {}", e));
+                    return Err(e);
+                }
 
                 self.ipc_bridge = Some(bridge);
                 self.status = "Running".to_string();

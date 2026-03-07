@@ -56,19 +56,18 @@ impl TransformService {
 
         let hash = TransformCache::compute_hash(&content);
         let relative_path = file_path.strip_prefix(&self.ctx.root).unwrap_or(file_path);
+        let relative_path_str = relative_path.to_string_lossy();
 
-        if self.cache.is_cached(relative_path.to_str().unwrap(), &hash) {
-            if let Some(cached_path) = self
-                .cache
-                .get_transform_path(relative_path.to_str().unwrap())
-            {
+        if self.cache.is_cached(&relative_path_str, &hash) {
+            if let Some(cached_path) = self.cache.get_transform_path(&relative_path_str) {
                 if cached_path.exists() {
                     return Ok(cached_path.clone());
                 }
             }
         }
 
-        let transformed = transform_code(&content, file_path.to_str().unwrap(), minify)
+        let file_path_str = file_path.to_string_lossy();
+        let transformed = transform_code(&content, &file_path_str, minify)
             .map_err(|e| format!("Transform failed: {:?}", e))?;
 
         let output_path = self

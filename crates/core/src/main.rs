@@ -82,13 +82,19 @@ async fn main() -> Result<()> {
         }
     }
 
-    copy_runtime_files(&ctx)?;
-
     let transformed_entry: PathBuf = ctx
         .checkpoint_dir
         .join("transforms")
         .join(entry_file.file_name().unwrap());
 
+    if args.no_transform && !transformed_entry.exists() {
+        return Err(eyre::eyre!(
+            "--no-transform requires an existing cached transform at {}",
+            transformed_entry.display()
+        ));
+    }
+
+    copy_runtime_files(&ctx)?;
     // discord rpc logic
     //
     // delete if u want

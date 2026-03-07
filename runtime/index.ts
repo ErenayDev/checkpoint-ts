@@ -108,17 +108,29 @@ async function mainLoop(): Promise<void> {
 
       case "checkpoint":
         console.error(`[DEBUG] Handling checkpoint`);
-        handleCheckpoint(message.payload as CheckpointPayload);
+        const payload = message.payload as CheckpointPayload;
+        if (!payload?.functionName || !Array.isArray(payload.args)) {
+          shm.writeJson({
+            type: "error",
+            message: "Invalid checkpoint payload",
+          });
+          break;
+        }
+        handleCheckpoint(payload);
         break;
 
       case "shutdown":
         console.error(`[DEBUG] Shutdown requested`);
         shm.close();
         process.exit(0);
+        break;
 
       default:
         console.error(`[DEBUG] Unknown message type: '${message.type}'`);
-        shm.writeJson({ type: "error", message: "unknown message type" });
+        shm.writeJson({
+          type: "error",
+          message: "unknown message type",
+        });
     }
   }
 }

@@ -6,6 +6,7 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 const RPC_VERSION: u32 = 1;
+const MAX_PAYLOAD_SIZE: usize = 64 * 1024; // 64KB should be more than enough
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u32)]
@@ -82,7 +83,8 @@ impl Activity {
         }
 
         if let Some(ref buttons) = self.buttons {
-            let button_array: Vec<serde_json::Value> = buttons
+            let buttons_to_use: Vec<_> = buttons.iter().take(2).collect();
+            let button_array: Vec<serde_json::Value> = buttons_to_use
                 .iter()
                 .map(|btn| {
                     serde_json::json!({
@@ -238,7 +240,11 @@ impl DiscordRpc {
             "client_id": self.client_id,
         });
         self.send(OpCode::Handshake, &payload)?;
-        let (_op, _response) = self.recv()?;
+        let (op, response) = self.recv()?;
+        if op == OpCode::Close as u32 {
+            let msg = response["message"].as_str().unwrap_or("handshake rejected");
+            return Err(io::Error::new(io::ErrorKind::ConnectionRefused, msg));
+        }
         Ok(())
     }
 
@@ -279,12 +285,17 @@ impl DiscordRpc {
         self.connection.write_all(&json_bytes)?;
         self.connection.flush()
     }
-
     fn recv(&mut self) -> io::Result<(u32, serde_json::Value)> {
         let mut header = [0u8; 8];
         self.connection.read_exact(&mut header)?;
         let opcode = u32::from_le_bytes(header[..4].try_into().unwrap());
         let length = u32::from_le_bytes(header[4..8].try_into().unwrap()) as usize;
+        if length > MAX_PAYLOAD_SIZE {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "payload too large",
+            ));
+        }
         let mut buf = vec![0u8; length];
         self.connection.read_exact(&mut buf)?;
         let value: serde_json::Value = serde_json::from_slice(&buf)

@@ -30,13 +30,9 @@ cargo build --release
 
 ### Arch Linux(AUR)
 
-#### Binary
+#### From Source
 
-```bash
-pacman -S checkpoint
-```
-
-#### From source
+Prebuilt binary not available at AUR yet
 
 ```bash
 yay -S checkpoint

@@ -31,7 +31,7 @@
         },
         "additional": {
           "binstall": "cargo binstall checkpoint-ts",
-          "aur": "pacman -S checkpoint",
+          "aur": "yay -S checkpoint",
           "nix-env": "nix-env -i checkpoint-ts",
           "nix flake": "nix profile install github:ErenayDev/checkpoint-ts"
         }

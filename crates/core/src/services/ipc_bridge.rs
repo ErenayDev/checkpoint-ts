@@ -129,6 +129,7 @@ impl Drop for IpcBridge {
     fn drop(&mut self) {
         if let Some(ref mut child) = self.child {
             let _ = child.kill();
+            let _ = child.wait();
         }
     }
 }

@@ -68,7 +68,9 @@ impl CheckpointTUI {
                 _ = interval.tick() => {
                     self.dashboard_state.tick_throbber();
                 }
-                 _= self.handle_events() => {}
+                result = self.handle_events() => {
+                                  result?;
+                               }
             }
             terminal.draw(|frame| self.draw(frame))?;
             self.dashboard_state.poll_ipc_messages();

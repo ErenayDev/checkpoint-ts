@@ -2,12 +2,11 @@ name: CI
 
 on:
   pull_request:
-    paths:
-      - "src/**"
-      - "crates/**"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
-      - ".github/workflows/**"
+    paths-ignore:
+      - "*.md"
+      - "doc/**"
+      - "LICENSE"
+      - ".gitignore"
   push:
     branches:
       - main

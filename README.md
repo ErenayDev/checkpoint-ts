@@ -35,7 +35,7 @@ checkpoint script.ts
 Currently only [Bun](https://bun.sh) is available. Check again in future for more runtimes
 
 ```bash
-checkpoint script.ts --interpreter bun
+checkpoint script.ts
 ```
 
 ### Pre-instrumented Files (not available yet)

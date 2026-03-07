@@ -19,6 +19,8 @@ jobs:
 
             - name: Install cargo-llvm-cov
               uses: taiki-e/install-action@f23382d582832e41d5eb4fff2bddb06bc5adf8d3 # v2.68.21
+              with:
+                  tool: cargo-llvm-cov
 
             - name: Generate coverage
               run: cargo llvm-cov --all-features --lcov --output-path lcov.info

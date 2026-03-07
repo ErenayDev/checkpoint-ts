@@ -103,6 +103,7 @@ impl SharedMemoryBridge {
     pub fn wait_receive(&self, timeout_ms: u64) -> Option<Vec<u8>> {
         let start = std::time::Instant::now();
         let timeout = std::time::Duration::from_millis(timeout_ms);
+        let spin_threshold = std::time::Duration::from_micros(100);
 
         loop {
             if let Some(data) = self.receive() {
@@ -113,7 +114,11 @@ impl SharedMemoryBridge {
                 return None;
             }
 
-            std::hint::spin_loop();
+            if start.elapsed() < spin_threshold {
+                std::hint::spin_loop();
+            } else {
+                std::thread::sleep(std::time::Duration::from_micros(100));
+            }
         }
     }
 

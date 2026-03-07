@@ -78,6 +78,10 @@ impl SharedMemoryBridge {
         }
 
         let len = header.data_len.load(Ordering::SeqCst) as usize;
+        if len > BUFFER_SIZE {
+            header.ready_flag.store(0, Ordering::SeqCst);
+            return None; // or return an error
+        }
         let buffer = unsafe {
             std::slice::from_raw_parts(
                 self.shmem.as_ptr().add(SINGLE_CHANNEL_SIZE + HEADER_SIZE),

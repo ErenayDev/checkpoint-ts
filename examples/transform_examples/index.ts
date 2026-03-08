@@ -96,3 +96,8 @@ class ApiClient {
 }
 
 export { ApiClient, type ApiResponse, type RequestConfig };
+
+console.log("Transformed code is executing!");
+
+const client = new ApiClient("https://api.example.com");
+client.get("/test", {}).then(console.log).catch(console.error);

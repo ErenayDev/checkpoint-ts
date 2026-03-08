@@ -2,15 +2,15 @@
   "project": {
     "name": "Checkpoint.ts",
     "repository": "https://github.com/ErenayDev/checkpoint-ts",
-    "license": "MIT"
+    "license": "GPL-3.0-or-later"
   },
   "styles": {
     "theme": "axodark",
-    "favicon": "https://www.axo.dev/favicon.ico"
+    "favicon": "https://erenaydev.com.tr/favicon.ico"
   },
   "marketing": {
     "social": {
-      "image": "https://www.axo.dev/meta_small.jpeg",
+      "image": "https://erenaydev.com.tr/favicon.png",
       "image_alt": "erenay",
       "twitter_account": "@erenaydev"
     }
@@ -21,8 +21,11 @@
   "components": {
     "changelog": true,
     "funding": {
-      "yml_path": "FUNDING.yml",
+      "yml_path": ".github/FUNDING.yml",
       "preferred_funding": "github"
+    },
+    "mdbook": {
+      "path": "./doc"
     },
     "artifacts": {
       "package_managers": {
@@ -31,9 +34,7 @@
         },
         "additional": {
           "binstall": "cargo binstall checkpoint-ts",
-          "aur": "yay -S checkpoint",
-          "nix-env": "nix-env -i checkpoint-ts",
-          "nix flake": "nix profile install github:ErenayDev/checkpoint-ts"
+          "aur": "yay -S checkpoint"
         }
       }
     }

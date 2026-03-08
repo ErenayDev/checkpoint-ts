@@ -9,6 +9,15 @@ authors.workspace = true
 
 [dependencies]
 checkpoint-shared = { path = "../shared" }
-swc_core.workspace = true
+swc_core = { version = "58.0.4", features = [
+  "__common",
+  "__ecma",
+  "ecma_ast",
+  "ecma_parser",
+  "ecma_transforms_typescript",
+  "ecma_codegen",
+  "ecma_visit",
+  "__testing_transform",
+] } # old ver -> 54
 serde.workspace = true
 serde_json.workspace = true

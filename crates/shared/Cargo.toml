@@ -8,6 +8,6 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-shared_memory.workspace = true
+shared_memory = "0.12"
 serde.workspace = true
 serde_json.workspace = true

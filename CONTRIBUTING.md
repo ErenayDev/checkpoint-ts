@@ -24,4 +24,4 @@ Try to do one pull request per change.
 
 ## Setting up development workspace
 
-Please see [DEVELOPMENT](./docs/DEVELOPMENT.md)
+Please see [DEVELOPMENT](./doc/src/DEVELOPMENT.md)

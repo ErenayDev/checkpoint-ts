@@ -11,23 +11,24 @@ Interactive checkpoint system for TypeScript/JavaScript.
 
 ## Quick Start
 
-See [INSTALLATION.md](./doc/INSTALLATION.md)
+See [INSTALLATION.md](./doc/src/INSTALLATION.md)
 
 ## Key Features
 
-When you run program, first parses your code with AST's and injects checkpointing functions.
-Then injects runtime codes and then a TUI appears to you view.
-When you wanna checkpoint in a point, the function name and its parameters, variables written to cache(in your .checkpoint folder)
-If you wanna run the checkpointed function, just do it. You can edit the parameters, variables for the function.
-You can profile execution times for each function.
-Also you can edit whatever you want. really. try it yourself.
+When you run the program, it first parses your code using ASTs and injects checkpointing functions.
+Then it injects runtime code, and a TUI appears for you to interact with.
+When you set a checkpoint, the function name along with its parameters and variables are written to the cache (in your `
+.checkpoint` folder).
+To run the checkpointed function, simply do so—you can edit the parameters and variables beforehand.
+You can also profile execution times for each function.
+Edit anything you want—try it yourself!
 
 ## Usage
 
 ### Basic Usage
 
 ```bash
-checkpoint script.ts
+checkpoint -i script.ts
 ```
 
 ### Runtime Selection
@@ -35,13 +36,7 @@ checkpoint script.ts
 Currently only [Bun](https://bun.sh) is available. Check again in future for more runtimes
 
 ```bash
-checkpoint script.ts
-```
-
-### Pre-instrumented Files (not available yet)
-
-```bash
-checkpoint --instrumented script.ts
+checkpoint -i script.ts
 ```
 
 ## Supported Features

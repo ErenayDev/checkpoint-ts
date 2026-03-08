@@ -1,7 +1,8 @@
 {
+  "name": "checkpoint-ts",
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "fix:prettier": "bun --bun run lint:prettier -- --write",
+    "fix:prettier": "prettier --config .prettierrc --write .",
     "lint:prettier": "prettier --config .prettierrc --check ."
   },
   "devDependencies": {

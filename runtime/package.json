@@ -4,10 +4,12 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^25.0.8"
+    "@types/node": "^25.0.8",
+    "typescript": "^5.9.3"
   }
 }

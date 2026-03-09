@@ -90,6 +90,8 @@ jobs:
         run: bun --version
       - name: Install dependencies
         run: bun install
+      - name: Get into runtime
+        run: cd runtime
       - name: TypeScript typecheck
         run: bun run tsc --noEmit
       - name: Run tests

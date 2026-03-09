@@ -19,7 +19,9 @@ export class SharedMemory {
   private constructor(name: string, pointer: number) {
     this.name = name;
     this.pointer = pointer;
-    this.buffer = new Uint8Array(toArrayBuffer(pointer, 0, TOTAL_SIZE));
+    this.buffer = new Uint8Array(
+      toArrayBuffer(ptr(Buffer.from([pointer])), 0, TOTAL_SIZE),
+    );
   }
 
   static open(shmName: string): SharedMemory {

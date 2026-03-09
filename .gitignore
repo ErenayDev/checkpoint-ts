@@ -28,5 +28,5 @@ target
 node_modules
 
 ## Oranda output
-public
-doc/book
+/public/
+/doc/book/

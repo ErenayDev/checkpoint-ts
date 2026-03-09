@@ -17,8 +17,7 @@ See [INSTALLATION.md](./doc/src/INSTALLATION.md)
 
 When you run the program, it first parses your code using ASTs and injects checkpointing functions.
 Then it injects runtime code, and a TUI appears for you to interact with.
-When you set a checkpoint, the function name along with its parameters and variables are written to the cache (in your `
-.checkpoint` folder).
+When you set a checkpoint, the function name along with its parameters and variables are written to the cache (in your `.checkpoint` folder).
 To run the checkpointed function, simply do so—you can edit the parameters and variables beforehand.
 You can also profile execution times for each function.
 Edit anything you want—try it yourself!

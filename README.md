@@ -26,13 +26,7 @@ Edit anything you want—try it yourself!
 
 ### Basic Usage
 
-```bash
-checkpoint -i script.ts
-```
-
-### Runtime Selection
-
-Currently only [Bun](https://bun.sh) is available. Check again in future for more runtimes
+Currently, only [Bun](https://bun.sh) is available. Check again in future for more runtimes.
 
 ```bash
 checkpoint -i script.ts
@@ -40,8 +34,12 @@ checkpoint -i script.ts
 
 ## Supported Features
 
-Covers like 85% TypeScript/JavaScript ecosystem codes. I'm planning optimize code and performance with switching to [oxc](https://oxc.rs) from [swc](https://swc.rs).
-And for dead-code elimination, I wanna use the [jsshaker](https://github.com/kermanx/jsshaker) for O(n) to O(1) optimization
+Covers approximately 85% of TypeScript/JavaScript ecosystem code.
+
+### Future Optimizations
+
+- Migration to [oxc](https://oxc.rs) from [swc](https://swc.rs) for improved performance.
+- Dead-code elimination using [jsshaker](https://github.com/kermanx/jsshaker) for O(n) to O(1) optimization.
 
 ## Contributing
 

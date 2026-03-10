@@ -54,7 +54,7 @@ async function mainLoop(): Promise<void> {
   });
 
   while (true) {
-    const message = shm.waitAndReadJson<Message>(100);
+    const message = await shm.waitAndReadJson<Message>(100);
 
     if (!message) continue;
 

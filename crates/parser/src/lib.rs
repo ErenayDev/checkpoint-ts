@@ -596,54 +596,52 @@ pub fn transform_code(
     file_path: &str,
     minify: bool,
 ) -> Result<String, TransformError> {
-    let unresolved_mark = Mark::new();
-    let top_level_mark = Mark::new();
-
-    let syntax = if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
-        Syntax::Typescript(Default::default())
-    } else {
-        Syntax::Es(Default::default())
-    };
-    let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-    let fm = cm.new_source_file(FileName::Real(file_path.into()).into(), source.to_string());
-    let input = StringInput::from(&*fm);
-    let mut parser = Parser::new(syntax, input, None);
-    let module = parser
-        .parse_module()
-        .map_err(|e| TransformError::ParseError(format!("{:?}", e)))?;
-    let mut program = Program::Module(module);
-    if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
-        //    program.visit_mut_with(&mut strip_type());
-        GLOBALS.set(&Default::default(), || {
+    GLOBALS.set(&Default::default(), || {
+        let unresolved_mark = Mark::new();
+        let top_level_mark = Mark::new();
+        let syntax = if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
+            Syntax::Typescript(Default::default())
+        } else {
+            Syntax::Es(Default::default())
+        };
+        let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
+        let fm = cm.new_source_file(FileName::Real(file_path.into()).into(), source.to_string());
+        let input = StringInput::from(&*fm);
+        let mut parser = Parser::new(syntax, input, None);
+        let module = parser
+            .parse_module()
+            .map_err(|e| TransformError::ParseError(format!("{:?}", e)))?;
+        let mut program = Program::Module(module);
+        if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
             program.mutate(typescript(
                 TsConfig::default(),
                 unresolved_mark,
                 top_level_mark,
             ))
-        })
-    }
-    let mut collector = AsyncCollector::new();
-    program.visit_mut_with(&mut collector);
-    let mut analyzer = ContextAnalyzer::new();
-    program.visit_mut_with(&mut analyzer);
-    let mut transformer = DualPhaseTransformer::new(collector.async_functions);
-    transformer.set_analysis_results(analyzer.expression_contexts, analyzer.function_calls);
-    program.visit_mut_with(&mut transformer);
-    let mut buf = Vec::new();
-    let wr = JsWriter::new(cm.clone(), "\n", &mut buf, None);
-    let mut emitter = Emitter {
-        cfg: Config::default()
-            .with_minify(minify)
-            .with_omit_last_semi(true)
-            .with_target(EsVersion::Es2024),
-        cm: cm.clone(),
-        comments: None,
-        wr,
-    };
-    emitter
-        .emit_program(&program)
-        .map_err(|e| TransformError::CodegenError(format!("{:?}", e)))?;
-    String::from_utf8(buf).map_err(|e| TransformError::CodegenError(format!("{:?}", e)))
+        }
+        let mut collector = AsyncCollector::new();
+        program.visit_mut_with(&mut collector);
+        let mut analyzer = ContextAnalyzer::new();
+        program.visit_mut_with(&mut analyzer);
+        let mut transformer = DualPhaseTransformer::new(collector.async_functions);
+        transformer.set_analysis_results(analyzer.expression_contexts, analyzer.function_calls);
+        program.visit_mut_with(&mut transformer);
+        let mut buf = Vec::new();
+        let wr = JsWriter::new(cm.clone(), "\n", &mut buf, None);
+        let mut emitter = Emitter {
+            cfg: Config::default()
+                .with_minify(minify)
+                .with_omit_last_semi(true)
+                .with_target(EsVersion::Es2024),
+            cm: cm.clone(),
+            comments: None,
+            wr,
+        };
+        emitter
+            .emit_program(&program)
+            .map_err(|e| TransformError::CodegenError(format!("{:?}", e)))?;
+        String::from_utf8(buf).map_err(|e| TransformError::CodegenError(format!("{:?}", e)))
+    })
 }
 
 fn extract_member_name(member_expr: &MemberExpr) -> String {

@@ -27,12 +27,12 @@ interface ExecuteResponse {
 }
 
 export const __checkpoint__ = {
-  execute<T>(
+  async execute<T>(
     functionName: string,
     fn: (...args: unknown[]) => T,
     args: unknown[],
     context?: unknown,
-  ): T {
+  ): Promise<T> {
     const request: ExecuteRequest = {
       functionName,
       args,
@@ -54,7 +54,7 @@ export const __checkpoint__ = {
           `Checkpoint timeout waiting for response on ${functionName}`,
         );
       }
-      response = shm.waitAndReadJson<ExecuteResponse>(1000);
+      response = await shm.waitAndReadJson<ExecuteResponse>(1000);
     }
 
     if (response.type === "error") {

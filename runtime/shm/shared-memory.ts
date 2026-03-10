@@ -60,6 +60,10 @@ export class SharedMemory {
     }
 
     const dataLen = view.getUint32(4, true);
+    if (dataLen > BUFFER_SIZE) {
+      Atomics.store(flagArray, 0, 0);
+      return null;
+    }
     const data = this.buffer.slice(HEADER_SIZE, HEADER_SIZE + dataLen);
 
     Atomics.store(flagArray, 0, 0);

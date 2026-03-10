@@ -48,6 +48,8 @@ impl CheckpointTUI {
             KeyCode::Char('q') | KeyCode::Char('Q') | KeyCode::Esc => {
                 self.navigate_back();
             }
+            KeyCode::Up => self.dashboard_state.scroll_logs_up(),
+            KeyCode::Down => self.dashboard_state.scroll_logs_down(),
             _ => {}
         }
     }

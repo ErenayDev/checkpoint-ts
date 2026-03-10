@@ -1,29 +1,91 @@
 import { SharedMemory } from "./shm/shared-memory";
 
-const shmId = process.env.CHECKPOINT_SHM_ID;
-if (!shmId) {
-  console.error("CHECKPOINT_SHM_ID not set");
-  process.exit(1);
+interface CheckpointRequest {
+  type: "checkpoint";
+  id: number;
+  payload: {
+    functionName: string;
+    args: unknown[];
+    context?: unknown;
+  };
 }
 
-let shm: SharedMemory;
-try {
-  shm = SharedMemory.open(shmId);
-} catch (error) {
-  console.error(`Failed to open shared memory: ${error}`);
-  process.exit(1);
+interface CheckpointResponse {
+  id: number;
+  action: "continue" | "step_over" | "step_into";
 }
 
-interface ExecuteRequest {
-  functionName: string;
-  args: unknown[];
-  context?: unknown;
+const responseCache = new Map<number, CheckpointResponse>();
+const timedOutRequests = new Set<number>();
+let isPolling = false;
+let requestIdCounter = 0;
+let shm: SharedMemory | null = null;
+
+function getNextRequestId(): number {
+  return ++requestIdCounter;
 }
 
-interface ExecuteResponse {
-  type: "continue" | "skip" | "error";
-  returnValue?: unknown;
-  error?: string;
+async function pollResponses(): Promise<void> {
+  if (isPolling || !shm) return;
+  isPolling = true;
+
+  try {
+    let receivedCount = 0;
+    while (true) {
+      const response = shm.receiveCheckpointResponseJson<CheckpointResponse>();
+      if (!response) break;
+
+      if (timedOutRequests.has(response.id)) {
+        console.error(
+          `[POLL] Discarding late response for timed-out ID ${response.id}`,
+        );
+        timedOutRequests.delete(response.id);
+        continue;
+      }
+
+      receivedCount++;
+      console.error(
+        `[POLL] Received response #${receivedCount}: id=${response.id}`,
+      );
+      responseCache.set(response.id, response);
+    }
+
+    if (receivedCount > 0) {
+      console.error(`[POLL] Polled ${receivedCount} responses`);
+    }
+  } catch (error) {
+    console.error("[POLL] Error polling responses:", error);
+  } finally {
+    isPolling = false;
+  }
+}
+
+export function initializeCheckpointRuntime(shmInstance: SharedMemory): void {
+  shm = shmInstance;
+}
+
+export function debugResponseCache(): void {
+  console.error("[DEBUG] ===== Response Cache =====");
+  console.error(`[DEBUG] Cache size: ${responseCache.size}`);
+
+  if (responseCache.size > 0) {
+    console.error("[DEBUG] Cache contents:");
+    for (const [id, response] of responseCache.entries()) {
+      console.error(`[DEBUG]   ID ${id}: ${JSON.stringify(response)}`);
+    }
+  } else {
+    console.error("[DEBUG] Cache is empty");
+  }
+
+  console.error("[DEBUG] ===========================");
+}
+
+export function debugQueueState(): void {
+  if (!shm) {
+    console.error("[DEBUG] SharedMemory not initialized");
+    return;
+  }
+  shm.debugQueueState();
 }
 
 export const __checkpoint__ = {
@@ -33,43 +95,67 @@ export const __checkpoint__ = {
     args: unknown[],
     context?: unknown,
   ): Promise<T> {
-    const request: ExecuteRequest = {
-      functionName,
-      args,
-      context: context ? context.constructor.name : undefined,
+    if (!shm) {
+      throw new Error("Checkpoint runtime not initialized");
+    }
+
+    const requestId = getNextRequestId();
+
+    const request: CheckpointRequest = {
+      type: "checkpoint",
+      id: requestId,
+      payload: {
+        functionName,
+        args,
+        context,
+      },
     };
 
-    shm.writeJson({
-      type: "checkpoint",
-      payload: request,
-    });
+    try {
+      shm.sendCheckpointJson(request);
+    } catch (error) {
+      console.error(`Failed to send checkpoint for ${functionName}:`, error);
+      debugQueueState();
+      throw error;
+    }
 
-    let response: ExecuteResponse | null = null;
-    const maxWaitMs = 30000; // 30 second timeout
     const startTime = performance.now();
+    const timeoutMs = 30000;
 
-    while (!response) {
-      if (performance.now() - startTime > maxWaitMs) {
-        throw new Error(
-          `Checkpoint timeout waiting for response on ${functionName}`,
-        );
+    while (performance.now() - startTime < timeoutMs) {
+      await pollResponses();
+
+      if (responseCache.has(requestId)) {
+        const response = responseCache.get(requestId)!;
+        responseCache.delete(requestId);
+
+        if (response.action === "continue") {
+          const result = fn.apply(context, args as never);
+          // if result is a Promise, await it; otherwise return directly
+          return result instanceof Promise ? await result : result;
+        } else if (response.action === "step_over") {
+          const result = fn.apply(context, args as never);
+          return result instanceof Promise ? await result : result;
+        } else if (response.action === "step_into") {
+          const result = fn.apply(context, args as never);
+          return result instanceof Promise ? await result : result;
+        } else {
+          throw new Error(`Unknown checkpoint action: ${response.action}`);
+        }
       }
-      response = await shm.waitAndReadJson<ExecuteResponse>(1000);
+
+      await Bun.sleep(10);
     }
 
-    if (response.type === "error") {
-      throw new Error(response.error || "Checkpoint error");
-    }
-
-    if (response.type === "skip") {
-      if (response.returnValue === undefined) {
-        throw new Error(
-          `Checkpoint skip response missing returnValue for ${functionName}`,
-        );
-      }
-      return response.returnValue as T;
-    }
-
-    return fn.apply(context, args as never[]);
+    console.error(
+      `[CHECKPOINT] Timeout for ${functionName} (id: ${requestId})`,
+    );
+    timedOutRequests.add(requestId);
+    responseCache.delete(requestId);
+    debugResponseCache();
+    debugQueueState();
+    throw new Error(
+      `Checkpoint timeout for ${functionName} (id: ${requestId})`,
+    );
   },
 };

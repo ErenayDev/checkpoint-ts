@@ -1,20 +1,19 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::sync::Arc;
+
 use swc_core::common::{
     DUMMY_SP, FileName, FilePathMapping, GLOBALS, Mark, SourceMap, Span, Spanned, SyntaxContext,
 };
 use swc_core::ecma::ast::{
     ArrayLit, ArrowExpr, AssignExpr, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, CondExpr,
-    EsVersion, Expr, ExprOrSpread, FnDecl, FnExpr, ForStmt, Ident, IdentName, IfStmt, ImportDecl,
-    ImportNamedSpecifier, ImportPhase, ImportSpecifier, Lit, MemberExpr, MemberProp, ModuleDecl,
-    ModuleItem, NewExpr, ObjectLit, ParenExpr, Pass, Pat, Program, Prop, PropOrSpread, SeqExpr,
-    Str, TaggedTpl, UnaryExpr, UpdateExpr, VarDeclarator, WhileStmt, YieldExpr,
+    Constructor, EsVersion, Expr, ExprOrSpread, FnDecl, FnExpr, ForStmt, Ident, IdentName, IfStmt,
+    ImportDecl, ImportNamedSpecifier, ImportPhase, ImportSpecifier, Lit, MemberExpr, MemberProp,
+    ModuleDecl, ModuleItem, NewExpr, ObjectLit, ParenExpr, Pass, Program, Prop, PropOrSpread,
+    SeqExpr, Str, TaggedTpl, UnaryExpr, UpdateExpr, WhileStmt, YieldExpr,
 };
 use swc_core::ecma::codegen::{Config, Emitter, text_writer::JsWriter};
 use swc_core::ecma::parser::{Parser, StringInput, Syntax};
-use swc_core::ecma::transforms::testing::test_inline;
-// use swc_core::ecma::transforms::typescript::strip_type;
 use swc_core::ecma::transforms::typescript::{Config as TsConfig, typescript};
 use swc_core::ecma::visit::{VisitMut, VisitMutWith};
 
@@ -58,59 +57,6 @@ pub enum ExprContext {
     FunctionCall,
     NewExpression,
     Root,
-}
-
-#[derive(Default)]
-pub struct AsyncCollector {
-    async_functions: HashSet<String>,
-}
-
-impl AsyncCollector {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl VisitMut for AsyncCollector {
-    fn visit_mut_fn_decl(&mut self, node: &mut FnDecl) {
-        if node.function.is_async {
-            self.async_functions
-                .insert(node.ident.sym.as_str().to_string());
-        }
-        node.visit_mut_children_with(self);
-    }
-
-    fn visit_mut_fn_expr(&mut self, node: &mut FnExpr) {
-        if node.function.is_async
-            && let Some(ident) = &node.ident
-        {
-            self.async_functions.insert(ident.sym.as_str().to_string());
-        }
-        node.visit_mut_children_with(self);
-    }
-
-    fn visit_mut_arrow_expr(&mut self, node: &mut ArrowExpr) {
-        node.visit_mut_children_with(self);
-    }
-
-    fn visit_mut_var_declarator(&mut self, node: &mut VarDeclarator) {
-        if let Some(init) = &node.init {
-            match init.as_ref() {
-                Expr::Arrow(arrow) if arrow.is_async => {
-                    if let Pat::Ident(ident) = &node.name {
-                        self.async_functions.insert(ident.sym.as_str().to_string());
-                    }
-                }
-                Expr::Fn(fn_expr) if fn_expr.function.is_async => {
-                    if let Pat::Ident(ident) = &node.name {
-                        self.async_functions.insert(ident.sym.as_str().to_string());
-                    }
-                }
-                _ => {}
-            }
-        }
-        node.visit_mut_children_with(self);
-    }
 }
 
 pub struct ContextAnalyzer {
@@ -173,10 +119,12 @@ impl VisitMut for ContextAnalyzer {
             analyzer.mark_expression(&node.test, ExprContext::TernaryCondition);
             node.test.visit_mut_with(analyzer);
         });
+
         self.with_context(ExprContext::TernaryConsequent, |analyzer| {
             analyzer.mark_expression(&node.cons, ExprContext::TernaryConsequent);
             node.cons.visit_mut_with(analyzer);
         });
+
         self.with_context(ExprContext::TernaryAlternate, |analyzer| {
             analyzer.mark_expression(&node.alt, ExprContext::TernaryAlternate);
             node.alt.visit_mut_with(analyzer);
@@ -195,6 +143,7 @@ impl VisitMut for ContextAnalyzer {
             analyzer.mark_expression(&node.left, left_context);
             node.left.visit_mut_with(analyzer);
         });
+
         self.with_context(right_context.clone(), |analyzer| {
             analyzer.mark_expression(&node.right, right_context);
             node.right.visit_mut_with(analyzer);
@@ -217,6 +166,7 @@ impl VisitMut for ContextAnalyzer {
 
     fn visit_mut_assign_expr(&mut self, node: &mut AssignExpr) {
         node.left.visit_mut_with(self);
+
         self.with_context(ExprContext::AssignRight, |analyzer| {
             analyzer.mark_expression(&node.right, ExprContext::AssignRight);
             node.right.visit_mut_with(analyzer);
@@ -313,7 +263,9 @@ impl VisitMut for ContextAnalyzer {
             analyzer.mark_expression(&node.test, ExprContext::IfCondition);
             node.test.visit_mut_with(analyzer);
         });
+
         node.cons.visit_mut_with(self);
+
         if let Some(alt) = &mut node.alt {
             alt.visit_mut_with(self);
         }
@@ -324,6 +276,7 @@ impl VisitMut for ContextAnalyzer {
             analyzer.mark_expression(&node.test, ExprContext::WhileCondition);
             node.test.visit_mut_with(analyzer);
         });
+
         node.body.visit_mut_with(self);
     }
 
@@ -331,34 +284,49 @@ impl VisitMut for ContextAnalyzer {
         if let Some(init) = &mut node.init {
             init.visit_mut_with(self);
         }
+
         if let Some(test) = &mut node.test {
             self.with_context(ExprContext::ForCondition, |analyzer| {
                 analyzer.mark_expression(test, ExprContext::ForCondition);
                 test.visit_mut_with(analyzer);
             });
         }
+
         if let Some(update) = &mut node.update {
             self.with_context(ExprContext::ForUpdate, |analyzer| {
                 analyzer.mark_expression(update, ExprContext::ForUpdate);
                 update.visit_mut_with(analyzer);
             });
         }
+
         node.body.visit_mut_with(self);
     }
 }
 
 pub struct DualPhaseTransformer {
-    async_functions: HashSet<String>,
     expression_contexts: HashMap<ExprId, ExprContext>,
     function_calls: HashSet<ExprId>,
+    in_async_context: bool,
+    checkpoint_depth: usize,
+    in_constructor: bool,
+    promoted_functions: Vec<String>,
+}
+
+impl Default for DualPhaseTransformer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DualPhaseTransformer {
-    pub fn new(async_functions: HashSet<String>) -> Self {
+    pub fn new() -> Self {
         Self {
-            async_functions,
             expression_contexts: HashMap::new(),
             function_calls: HashSet::new(),
+            in_async_context: false,
+            checkpoint_depth: 0,
+            in_constructor: false,
+            promoted_functions: Vec::new(),
         }
     }
 
@@ -372,7 +340,7 @@ impl DualPhaseTransformer {
     }
 
     fn is_method_chaining(&self, member_expr: &MemberExpr) -> bool {
-        match &member_expr.obj.as_ref() {
+        match member_expr.obj.as_ref() {
             Expr::Call(_) => true,
             Expr::Member(nested) => self.is_method_chaining(nested),
             _ => false,
@@ -380,7 +348,7 @@ impl DualPhaseTransformer {
     }
 
     fn is_checkpoint_reference(&self, member_expr: &MemberExpr) -> bool {
-        match &member_expr.obj.as_ref() {
+        match member_expr.obj.as_ref() {
             Expr::Ident(ident) => ident.sym.as_str() == "__checkpoint__",
             Expr::Member(nested) => self.is_checkpoint_reference(nested),
             _ => false,
@@ -395,23 +363,27 @@ impl DualPhaseTransformer {
         if self.is_checkpoint_reference(member_expr) {
             return true;
         }
+
         if self.is_method_chaining(member_expr) {
             return true;
         }
+
         if self.is_complex_computed_access(member_expr) {
             return true;
         }
+
         false
     }
 
     fn extract_call_info(&self, node: &CallExpr) -> (Option<String>, Option<Expr>) {
         match &node.callee {
             Callee::Expr(expr) => match expr.as_ref() {
-                Expr::Ident(ident) => (Some(ident.sym.as_str().to_string()), None),
+                Expr::Ident(ident) => (Some(ident.sym.to_string()), None),
                 Expr::Member(member_expr) => {
                     if self.should_skip_transformation(member_expr) {
                         return (None, None);
                     }
+
                     let name = extract_member_name(member_expr);
                     let context = extract_member_context(member_expr);
                     (Some(name), Some(context))
@@ -424,25 +396,126 @@ impl DualPhaseTransformer {
 }
 
 impl VisitMut for DualPhaseTransformer {
+    fn visit_mut_fn_decl(&mut self, node: &mut FnDecl) {
+        let was_async = self.in_async_context;
+        self.in_async_context = node.function.is_async;
+
+        let checkpoint_count_before = self.checkpoint_depth;
+        node.visit_mut_children_with(self);
+
+        if self.checkpoint_depth > checkpoint_count_before && !node.function.is_async {
+            if self.promoted_functions.len() < 10 {
+                eprintln!(
+                    "Warning: Function '{}' is being promoted to async",
+                    node.ident.sym
+                );
+            }
+            self.promoted_functions.push(node.ident.sym.to_string());
+            node.function.is_async = true;
+        }
+
+        self.in_async_context = was_async;
+    }
+
+    fn visit_mut_fn_expr(&mut self, node: &mut FnExpr) {
+        let was_async = self.in_async_context;
+        self.in_async_context = node.function.is_async;
+
+        let checkpoint_count_before = self.checkpoint_depth;
+        node.visit_mut_children_with(self);
+
+        if self.checkpoint_depth > checkpoint_count_before && !node.function.is_async {
+            if let Some(ref ident) = node.ident {
+                if self.promoted_functions.len() < 10 {
+                    eprintln!(
+                        "Warning: Function '{}' is being promoted to async",
+                        ident.sym
+                    );
+                }
+                self.promoted_functions.push(ident.sym.to_string());
+            } else {
+                self.promoted_functions.push("<anonymous>".to_string());
+            }
+            node.function.is_async = true;
+        }
+
+        self.in_async_context = was_async;
+    }
+
+    fn visit_mut_arrow_expr(&mut self, node: &mut ArrowExpr) {
+        let was_async = self.in_async_context;
+        self.in_async_context = node.is_async;
+
+        let checkpoint_count_before = self.checkpoint_depth;
+        node.visit_mut_children_with(self);
+
+        if self.checkpoint_depth > checkpoint_count_before && !node.is_async {
+            if self.promoted_functions.len() < 10 {
+                eprintln!(
+                    "Warning: Arrow function at {:?} is being promoted to async",
+                    node.span
+                );
+            }
+            node.is_async = true;
+        }
+
+        self.in_async_context = was_async;
+    }
+
+    fn visit_mut_constructor(&mut self, node: &mut Constructor) {
+        let was_in_constructor = self.in_constructor;
+        let was_async = self.in_async_context;
+
+        self.in_constructor = true;
+        self.in_async_context = false;
+
+        node.visit_mut_children_with(self);
+
+        self.in_constructor = was_in_constructor;
+        self.in_async_context = was_async;
+    }
+
     fn visit_mut_call_expr(&mut self, node: &mut CallExpr) {
         node.visit_mut_children_with(self);
+
+        if self.in_constructor {
+            return;
+        }
+
         let expr_id = ExprId::from(node.span);
         if self.function_calls.contains(&expr_id) {
             let (function_name, this_context) = self.extract_call_info(node);
+
             if let Some(name) = function_name {
-                let is_async = self.async_functions.contains(&name);
-                let wrapper = if is_async {
-                    create_async_wrapper(&name, &node.args, this_context)
-                } else {
-                    create_sync_wrapper(&name, &node.args, this_context)
-                };
+                self.checkpoint_depth += 1;
+                let original_callee = node.callee.clone();
+
+                let wrapper = create_wrapper_with_original_callee(
+                    &name,
+                    original_callee,
+                    &node.args,
+                    this_context,
+                );
+
                 *node = wrapper;
             }
         }
     }
 
-    fn visit_mut_new_expr(&mut self, node: &mut NewExpr) {
-        node.visit_mut_children_with(self);
+    fn visit_mut_expr(&mut self, expr: &mut Expr) {
+        expr.visit_mut_children_with(self);
+
+        if self.in_async_context && !self.in_constructor {
+            if let Expr::Call(call) = expr {
+                if is_checkpoint_call(call) {
+                    let await_expr = AwaitExpr {
+                        span: call.span,
+                        arg: Box::new(Expr::Call(call.clone())),
+                    };
+                    *expr = Expr::Await(await_expr);
+                }
+            }
+        }
     }
 
     fn visit_mut_program(&mut self, program: &mut Program) {
@@ -452,7 +525,9 @@ impl VisitMut for DualPhaseTransformer {
             imported: None,
             is_type_only: false,
         };
+
         let import_specifier = ImportSpecifier::Named(named_specifier);
+
         let import_decl = ImportDecl {
             span: DUMMY_SP,
             specifiers: vec![import_specifier],
@@ -465,72 +540,88 @@ impl VisitMut for DualPhaseTransformer {
             with: None,
             phase: ImportPhase::Evaluation,
         };
+
         let module_item = ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl));
+
         match program {
             Program::Module(module) => {
                 module.body.insert(0, module_item);
             }
             Program::Script(_) => {}
         }
+
         program.visit_mut_children_with(self);
     }
 }
 
-impl Pass for DualPhaseTransformer {
-    fn process(&mut self, program: &mut Program) {
-        program.visit_mut_with(self);
+fn is_checkpoint_call(call: &CallExpr) -> bool {
+    if let Callee::Expr(expr) = &call.callee {
+        if let Expr::Member(member) = expr.as_ref() {
+            if let Expr::Ident(obj) = member.obj.as_ref() {
+                if obj.sym.as_str() == "__checkpoint__" {
+                    if let MemberProp::Ident(prop) = &member.prop {
+                        return prop.sym.as_str() == "execute";
+                    }
+                }
+            }
+        }
     }
+    false
 }
 
-#[derive(Debug)]
-pub enum TransformError {
-    ParseError(String),
-    TransformError(String),
-    CodegenError(String),
-}
-
-fn create_async_wrapper(name: &str, args: &[ExprOrSpread], context: Option<Expr>) -> CallExpr {
+fn create_wrapper_with_original_callee(
+    name: &str,
+    original_callee: Callee,
+    args: &[ExprOrSpread],
+    context: Option<Expr>,
+) -> CallExpr {
     let checkpoint_ident = Ident::new_no_ctxt("__checkpoint__".into(), DUMMY_SP);
-    let execute_async_ident = IdentName::new("executeAsync".into(), DUMMY_SP);
+    let execute_ident = IdentName::new("execute".into(), DUMMY_SP);
+
     let member_expr = MemberExpr {
         obj: Box::new(Expr::Ident(checkpoint_ident)),
-        prop: MemberProp::Ident(execute_async_ident),
+        prop: MemberProp::Ident(execute_ident),
         span: DUMMY_SP,
     };
-    let function_name_lit = Lit::Str(Str {
-        value: name.into(),
-        raw: None,
-        span: DUMMY_SP,
-    });
-    let function_ident = Ident::new_no_ctxt(name.into(), DUMMY_SP);
+
     let function_name_arg = ExprOrSpread {
-        expr: Box::new(Expr::Lit(function_name_lit)),
+        expr: Box::new(Expr::Lit(Lit::Str(Str {
+            value: name.into(),
+            raw: None,
+            span: DUMMY_SP,
+        }))),
         spread: None,
     };
-    let function_identifier_arg = ExprOrSpread {
-        expr: Box::new(Expr::Ident(function_ident)),
+
+    let fn_expr = match original_callee {
+        Callee::Expr(expr) => *expr,
+        _ => return create_sync_wrapper(name, args, context),
+    };
+
+    let fn_arg = ExprOrSpread {
+        expr: Box::new(fn_expr),
         spread: None,
     };
-    let original_args_array = ArrayLit {
+
+    let args_array = ArrayLit {
         span: DUMMY_SP,
         elems: args.iter().map(|arg| Some(arg.clone())).collect(),
     };
-    let original_args_arg = ExprOrSpread {
-        expr: Box::new(Expr::Array(original_args_array)),
+
+    let args_arg = ExprOrSpread {
+        expr: Box::new(Expr::Array(args_array)),
         spread: None,
     };
-    let mut call_args = vec![
-        function_name_arg,
-        function_identifier_arg,
-        original_args_arg,
-    ];
+
+    let mut call_args = vec![function_name_arg, fn_arg, args_arg];
+
     if let Some(ctx) = context {
-        let context_arg = ExprOrSpread {
+        call_args.push(ExprOrSpread {
             expr: Box::new(ctx),
             spread: None,
-        };
-        call_args.push(context_arg);
+        });
     }
+
     CallExpr {
         callee: Callee::Expr(Box::new(Expr::Member(member_expr))),
         args: call_args,
@@ -543,38 +634,47 @@ fn create_async_wrapper(name: &str, args: &[ExprOrSpread], context: Option<Expr>
 fn create_sync_wrapper(name: &str, args: &[ExprOrSpread], context: Option<Expr>) -> CallExpr {
     let checkpoint_ident = Ident::new_no_ctxt("__checkpoint__".into(), DUMMY_SP);
     let execute_ident = IdentName::new("execute".into(), DUMMY_SP);
+
     let member_expr = MemberExpr {
         obj: Box::new(Expr::Ident(checkpoint_ident)),
         prop: MemberProp::Ident(execute_ident),
         span: DUMMY_SP,
     };
+
     let function_name_lit = Lit::Str(Str {
         value: name.into(),
         raw: None,
         span: DUMMY_SP,
     });
+
     let function_ident = Ident::new_no_ctxt(name.into(), DUMMY_SP);
+
     let function_name_arg = ExprOrSpread {
         expr: Box::new(Expr::Lit(function_name_lit)),
         spread: None,
     };
+
     let function_identifier_arg = ExprOrSpread {
         expr: Box::new(Expr::Ident(function_ident)),
         spread: None,
     };
+
     let original_args_array = ArrayLit {
         span: DUMMY_SP,
         elems: args.iter().map(|arg| Some(arg.clone())).collect(),
     };
+
     let original_args_arg = ExprOrSpread {
         expr: Box::new(Expr::Array(original_args_array)),
         spread: None,
     };
+
     let mut call_args = vec![
         function_name_arg,
         function_identifier_arg,
         original_args_arg,
     ];
+
     if let Some(ctx) = context {
         let context_arg = ExprOrSpread {
             expr: Box::new(ctx),
@@ -582,6 +682,7 @@ fn create_sync_wrapper(name: &str, args: &[ExprOrSpread], context: Option<Expr>)
         };
         call_args.push(context_arg);
     }
+
     CallExpr {
         callee: Callee::Expr(Box::new(Expr::Member(member_expr))),
         args: call_args,
@@ -591,114 +692,100 @@ fn create_sync_wrapper(name: &str, args: &[ExprOrSpread], context: Option<Expr>)
     }
 }
 
+#[derive(Debug)]
+pub enum TransformError {
+    ParseError(String),
+    TransformError(String),
+    CodegenError(String),
+}
+
 pub fn transform_code(
     source: &str,
     file_path: &str,
     minify: bool,
 ) -> Result<String, TransformError> {
-    GLOBALS.set(&Default::default(), || {
-        let unresolved_mark = Mark::new();
-        let top_level_mark = Mark::new();
-        let syntax = if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
-            Syntax::Typescript(Default::default())
-        } else {
-            Syntax::Es(Default::default())
-        };
-        let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-        let fm = cm.new_source_file(FileName::Real(file_path.into()).into(), source.to_string());
-        let input = StringInput::from(&*fm);
-        let mut parser = Parser::new(syntax, input, None);
-        let module = parser
-            .parse_module()
-            .map_err(|e| TransformError::ParseError(format!("{:?}", e)))?;
-        let mut program = Program::Module(module);
-        if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
-            program.mutate(typescript(
-                TsConfig::default(),
-                unresolved_mark,
-                top_level_mark,
-            ))
-        }
-        let mut collector = AsyncCollector::new();
-        program.visit_mut_with(&mut collector);
-        let mut analyzer = ContextAnalyzer::new();
-        program.visit_mut_with(&mut analyzer);
-        let mut transformer = DualPhaseTransformer::new(collector.async_functions);
-        transformer.set_analysis_results(analyzer.expression_contexts, analyzer.function_calls);
-        program.visit_mut_with(&mut transformer);
-        let mut buf = Vec::new();
-        let wr = JsWriter::new(cm.clone(), "\n", &mut buf, None);
-        let mut emitter = Emitter {
-            cfg: Config::default()
-                .with_minify(minify)
-                .with_omit_last_semi(true)
-                .with_target(EsVersion::Es2024),
-            cm: cm.clone(),
-            comments: None,
-            wr,
-        };
-        emitter
-            .emit_program(&program)
-            .map_err(|e| TransformError::CodegenError(format!("{:?}", e)))?;
-        String::from_utf8(buf).map_err(|e| TransformError::CodegenError(format!("{:?}", e)))
-    })
+    let syntax = if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
+        Syntax::Typescript(Default::default())
+    } else {
+        Syntax::Es(Default::default())
+    };
+
+    let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
+    let fm = cm.new_source_file(FileName::Real(file_path.into()).into(), source.to_string());
+
+    let input = StringInput::from(&*fm);
+    let mut parser = Parser::new(syntax, input, None);
+
+    let module = parser
+        .parse_module()
+        .map_err(|e| TransformError::ParseError(format!("{:?}", e)))?;
+
+    let mut program = Program::Module(module);
+
+    if file_path.ends_with(".ts") || file_path.ends_with(".tsx") {
+        GLOBALS.set(&Default::default(), || {
+            let mut ts_transform = typescript(TsConfig::default(), Mark::new(), Mark::new());
+            ts_transform.process(&mut program);
+        });
+    }
+
+    let mut analyzer = ContextAnalyzer::new();
+    program.visit_mut_with(&mut analyzer);
+
+    let mut transformer = DualPhaseTransformer::new();
+    transformer.set_analysis_results(analyzer.expression_contexts, analyzer.function_calls);
+
+    program.visit_mut_with(&mut transformer);
+
+    if !transformer.promoted_functions.is_empty() {
+        eprintln!(
+            "Info: {} functions were promoted to async",
+            transformer.promoted_functions.len()
+        );
+    }
+
+    let mut buf = Vec::new();
+    let wr = JsWriter::new(cm.clone(), "\n", &mut buf, None);
+
+    let mut emitter = Emitter {
+        cfg: Config::default()
+            .with_minify(minify)
+            .with_omit_last_semi(true)
+            .with_target(EsVersion::Es2024),
+        cm: cm.clone(),
+
+        comments: None,
+        wr,
+    };
+
+    emitter
+        .emit_program(&program)
+        .map_err(|e| TransformError::CodegenError(format!("{:?}", e)))?;
+
+    String::from_utf8(buf).map_err(|e| TransformError::CodegenError(format!("{:?}", e)))
 }
 
 fn extract_member_name(member_expr: &MemberExpr) -> String {
-    let obj_name = match &member_expr.obj.as_ref() {
+    let obj_name = match member_expr.obj.as_ref() {
         Expr::Ident(ident) => ident.sym.as_str().to_string(),
         Expr::Member(nested_member) => extract_member_name(nested_member),
         Expr::This(_) => "this".to_string(),
         _ => "unknown".to_string(),
     };
+
     let prop_name = match &member_expr.prop {
         MemberProp::Ident(ident) => ident.sym.as_str().to_string(),
         MemberProp::Computed(_) => "computed".to_string(),
         _ => "unknown".to_string(),
     };
+
     format!("{}.{}", obj_name, prop_name)
 }
 
 fn extract_member_context(member_expr: &MemberExpr) -> Expr {
-    match &member_expr.obj.as_ref() {
+    match member_expr.obj.as_ref() {
         Expr::Member(nested_member) => Expr::Member(nested_member.clone()),
         Expr::This(this_expr) => Expr::This(*this_expr),
         _ => (*member_expr.obj).clone(),
     }
 }
-
-#[allow(dead_code)]
-fn create_test_transformer(source: &str, async_functions: HashSet<String>) -> DualPhaseTransformer {
-    let syntax = Syntax::Es(Default::default());
-    let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-    let fm = cm.new_source_file(FileName::Real("test.js".into()).into(), source.to_string());
-    let input = StringInput::from(&*fm);
-    let mut parser = Parser::new(syntax, input, None);
-    let module = parser.parse_module().unwrap();
-    let mut test_program = Program::Module(module);
-    let mut collector = AsyncCollector::new();
-    collector.async_functions = async_functions;
-    let mut analyzer = ContextAnalyzer::new();
-    test_program.visit_mut_with(&mut analyzer);
-    let mut transformer = DualPhaseTransformer::new(collector.async_functions);
-    transformer.set_analysis_results(analyzer.expression_contexts, analyzer.function_calls);
-    transformer
-}
-
-test_inline!(
-    Default::default(),
-    |_| {
-        let mut async_funcs = HashSet::new();
-        async_funcs.insert("fetchData".to_string());
-        create_test_transformer(
-            r#"export {}; async function fetchData() { return "data"; } fetchData()"#,
-            async_funcs,
-        )
-    },
-    async_function_call,
-    r#"export {}; async function fetchData() { return "data"; } fetchData()"#,
-    r#"import { __checkpoint__ } from "../runtime/checkpoint-runtime";
-export {};
-async function fetchData() { return "data"; }
-__checkpoint__.executeAsync("fetchData", fetchData, []);"#
-);

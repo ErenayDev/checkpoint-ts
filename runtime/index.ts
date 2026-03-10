@@ -1,4 +1,5 @@
 import { SharedMemory } from "./shm/shared-memory";
+import { initializeCheckpointRuntime } from "./checkpoint-runtime";
 
 const shmId = process.env.CHECKPOINT_SHM_ID;
 if (!shmId) {
@@ -6,81 +7,57 @@ if (!shmId) {
   process.exit(1);
 }
 
-let shm: SharedMemory;
-try {
-  shm = SharedMemory.open(shmId);
-  console.error(`[DEBUG] SHM opened successfully`);
-} catch (error) {
-  console.error(`[DEBUG] Failed to open SHM: ${error}`);
-  process.exit(1);
-}
+const shm = SharedMemory.open(shmId);
+initializeCheckpointRuntime(shm);
+
+console.error(`[INDEX] Using shared SHM instance: ${shmId}`);
 
 interface Message {
   type: string;
   payload?: unknown;
 }
 
-interface CheckpointPayload {
-  functionName: string;
-  args: unknown[];
-  context?: string;
-}
-
 const appPath = process.env.CHECKPOINT_APP_PATH;
 
-function handleCheckpoint(payload: CheckpointPayload): void {
-  const { functionName, args, context } = payload;
-  const logMessage = context
-    ? `${context}.${functionName}(${JSON.stringify(args)})`
-    : `${functionName}(${JSON.stringify(args)})`;
-
-  shm.writeJson({
-    log: logMessage,
-    current_function: functionName,
-  });
-
-  shm.writeJson({
-    type: "continue",
-  });
-}
-
 async function mainLoop(): Promise<void> {
-  console.error(`[DEBUG] Entering main loop`);
+  console.error(`[INDEX] Entering main loop`);
+  console.error(`[INDEX] Sending ready message`);
 
-  console.error(`[DEBUG] Sending ready message`);
-  shm.writeJson({
+  shm.sendStatusJson({
     type: "runtime_ready",
     log: "Runtime ready, waiting for commands",
   });
 
   while (true) {
-    const message = await shm.waitAndReadJson<Message>(100);
-
+    const message = await shm.waitReceiveCommandJson<Message>(100);
     if (!message) continue;
 
-    console.error(`[DEBUG] Received message: ${JSON.stringify(message)}`);
+    console.error(
+      `[INDEX] ← Received command: ${JSON.stringify(message, null, 2)}`,
+    );
 
     switch (message.type) {
-      case "load_app":
-        console.error(`[DEBUG] Load app command received`);
+      case "load_app": {
+        console.error(`[INDEX] Load app command received`);
 
-        shm.writeJson({
+        shm.sendStatusJson({
           type: "version",
           value: {
             lv: Bun.version_with_sha,
             v: Bun.version,
           },
         });
+        console.error(`[INDEX] → Sent: version, ${Bun.version}`);
 
         if (!appPath) {
-          shm.writeJson({
+          shm.sendStatusJson({
             log: "CHECKPOINT_APP_PATH not set",
             type: "error",
           });
           break;
         }
 
-        shm.writeJson({
+        shm.sendStatusJson({
           log: `Loading application: ${appPath}`,
         });
 
@@ -89,47 +66,32 @@ async function mainLoop(): Promise<void> {
             appPath.startsWith("/") || appPath.startsWith("file://")
               ? appPath
               : `file://${appPath}`;
-
-          console.error(`[DEBUG] Importing: ${absolutePath}`);
+          console.error(`[INDEX] Importing: ${absolutePath}`);
           await import(absolutePath);
-          console.error(`[DEBUG] App loaded successfully`);
-
-          shm.writeJson({
+          console.error(`[INDEX] App loaded successfully`);
+          shm.sendStatusJson({
             log: "Application loaded and ready",
           });
         } catch (error) {
-          console.error(`[DEBUG] Import failed: ${error}`);
-          shm.writeJson({
+          console.error(`[INDEX] Import failed: ${error}`);
+          shm.sendStatusJson({
             log: `Failed to load app: ${error}`,
             type: "error",
           });
         }
         break;
-
-      case "checkpoint":
-        console.error(`[DEBUG] Handling checkpoint`);
-        const payload = message.payload as CheckpointPayload;
-        if (!payload?.functionName || !Array.isArray(payload.args)) {
-          shm.writeJson({
-            type: "error",
-            message: "Invalid checkpoint payload",
-          });
-          break;
-        }
-        handleCheckpoint(payload);
-        break;
-
+      }
       case "shutdown":
-        console.error(`[DEBUG] Shutdown requested`);
+        console.error(`[INDEX] Shutdown requested`);
         shm.close();
         process.exit(0);
         break;
 
       default:
-        console.error(`[DEBUG] Unknown message type: '${message.type}'`);
-        shm.writeJson({
+        console.error(`[INDEX] Unknown message type: '${message.type}'`);
+        shm.sendStatusJson({
           type: "error",
-          message: "unknown message type",
+          log: `Unknown message type: ${message.type}`,
         });
     }
   }

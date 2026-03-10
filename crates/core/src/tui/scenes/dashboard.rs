@@ -1,12 +1,14 @@
 use crate::services::IpcBridge;
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::Stylize,
-    text::Line,
-    widgets::{Block, Borders, Paragraph},
+    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
+    style::{Color, Modifier, Style, Stylize},
+    text::{Line, Span},
+    widgets::{
+        Block, Borders, List, ListItem, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    },
 };
-use throbber_widgets_tui::{BRAILLE_SIX, Throbber, ThrobberState};
+use throbber_widgets_tui::ThrobberState;
 
 #[derive(Debug)]
 pub struct DashboardState {
@@ -22,13 +24,17 @@ pub struct DashboardState {
     pub stack_depth: u32,
     pub timeline_functions: Vec<TimelineFunction>,
     pub logs: Vec<String>,
+    pub log_visible_height: usize,
+    pub log_scroll_offset: usize,
     pub throbber_state: ThrobberState,
     pub paused: bool,
-    pub pending_checkpoint: Option<CheckpointData>,
+    pub app_loading: bool,
+    pub pending_checkpoints: Vec<CheckpointData>,
 }
 
 #[derive(Clone, Debug)]
 pub struct CheckpointData {
+    pub id: u64,
     pub function_name: String,
     pub args: Vec<serde_json::Value>,
     pub context: Option<String>,
@@ -39,6 +45,7 @@ pub struct TimelineFunction {
     pub name: String,
     pub status: FunctionStatus,
     pub duration: Option<String>,
+    pub checkpoint_id: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -55,7 +62,7 @@ impl Default for DashboardState {
             file_path: None,
             transformed_path: None,
             ipc_bridge: None,
-            runtime: "Bun v1.3.5".to_string(),
+            runtime: "Bun v1.3.10".to_string(),
             execution_time: "0s".to_string(),
             status: "Ready".to_string(),
             current_function: None,
@@ -64,35 +71,12 @@ impl Default for DashboardState {
             stack_depth: 0,
             throbber_state: ThrobberState::default(),
             paused: false,
-            pending_checkpoint: None,
-            timeline_functions: vec![
-                TimelineFunction {
-                    name: "initApp".to_string(),
-                    status: FunctionStatus::Completed,
-                    duration: Some("2ms".to_string()),
-                },
-                TimelineFunction {
-                    name: "loadConfig".to_string(),
-                    status: FunctionStatus::Completed,
-                    duration: Some("15ms".to_string()),
-                },
-                TimelineFunction {
-                    name: "connectDB".to_string(),
-                    status: FunctionStatus::Completed,
-                    duration: Some("120ms".to_string()),
-                },
-                TimelineFunction {
-                    name: "fetchUser".to_string(),
-                    status: FunctionStatus::Completed,
-                    duration: Some("45ms".to_string()),
-                },
-                TimelineFunction {
-                    name: "calculateTax".to_string(),
-                    status: FunctionStatus::Current,
-                    duration: None,
-                },
-            ],
+            timeline_functions: vec![],
             logs: vec!["System initialized".to_string()],
+            log_scroll_offset: 0,
+            log_visible_height: 20,
+            app_loading: false,
+            pending_checkpoints: Vec::new(),
         }
     }
 }
@@ -102,118 +86,208 @@ impl DashboardState {
         Self::default()
     }
 
-    pub fn poll_ipc_messages(&mut self) {
-        if let Some(ref mut bridge) = self.ipc_bridge {
-            if let Some(message) = bridge.receive_json::<serde_json::Value>(100) {
-                self.add_log(format!(
-                    "IPC: {}",
-                    serde_json::to_string(&message).unwrap_or_default()
-                ));
-                self.handle_ipc_message(message);
-            }
+    pub fn scroll_logs_up(&mut self) {
+        if self.log_scroll_offset > 0 {
+            self.log_scroll_offset -= 1;
         }
     }
 
-    fn handle_ipc_message(&mut self, message: serde_json::Value) {
+    pub fn scroll_logs_down(&mut self) {
+        let max_scroll = self.logs.len().saturating_sub(self.log_visible_height);
+        if self.log_scroll_offset < max_scroll {
+            self.log_scroll_offset += 1;
+        }
+    }
+
+    pub fn scroll_logs_to_bottom(&mut self) {
+        self.log_scroll_offset = self.logs.len().saturating_sub(self.log_visible_height);
+    }
+
+    pub fn poll_ipc_messages(&mut self) {
+        while let Some(checkpoint) = if let Some(ref mut bridge) = self.ipc_bridge {
+            bridge.receive_checkpoint_json::<serde_json::Value>(1)
+        } else {
+            None
+        } {
+            self.handle_checkpoint_message(checkpoint);
+        }
+
+        if let Some(message) = if let Some(ref mut bridge) = self.ipc_bridge {
+            bridge.receive_status_json::<serde_json::Value>(10)
+        } else {
+            None
+        } {
+            self.handle_status_message(message);
+        }
+    }
+
+    fn handle_status_message(&mut self, message: serde_json::Value) {
         if let Some(log_msg) = message.get("log").and_then(|v| v.as_str()) {
-            self.add_log(log_msg.to_string());
+            // skip duplicate "runtime_ready" logs
+            if !log_msg.contains("Runtime ready, waiting for commands") {
+                self.add_log(log_msg.to_string());
+            }
         }
 
         if let Some(msg_type) = message.get("type").and_then(|v| v.as_str()) {
             match msg_type {
-                "checkpoint" => {
-                    if let Some(payload) = message.get("payload") {
-                        let func_name = payload
-                            .get("functionName")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("unknown");
-
-                        let args = payload
-                            .get("args")
-                            .and_then(|v| v.as_array())
-                            .cloned()
-                            .unwrap_or_default();
-
-                        let context = payload
-                            .get("context")
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.to_string());
-
-                        self.current_function = Some(func_name.to_string());
-                        self.add_log(format!("Checkpoint: {}", func_name));
-
-                        self.pending_checkpoint = Some(CheckpointData {
-                            function_name: func_name.to_string(),
-                            args,
-                            context,
-                        });
-
-                        self.paused = true;
-                        self.status = "Paused".to_string();
-                    }
-                }
-                "error" => {
-                    if let Some(error_msg) = message.get("message").and_then(|v| v.as_str()) {
-                        self.add_log(format!("Error: {}", error_msg));
-                    }
+                "runtime_ready" => {
+                    // we already logged in spawn_runtime func. so just skip the logging in here
                 }
                 "version" => {
                     if let Some(value) = message.get("value") {
                         if let Some(lv) = value.get("lv").and_then(|v| v.as_str()) {
                             self.runtime = lv.to_string();
+                            self.add_log(format!("Runtime version: {}", lv));
                         }
                     }
-
-                    if let Some(ref bridge) = self.ipc_bridge {
-                        let _ = bridge.send_json(&serde_json::json!({
-                            "type": "version_ack"
-                        }));
+                }
+                "error" => {
+                    if let Some(error_msg) = message.get("message").and_then(|v| v.as_str()) {
+                        self.add_log(format!("ERROR: {}", error_msg));
+                    } else if let Some(error_msg) = message.get("log").and_then(|v| v.as_str()) {
+                        self.add_log(format!("ERROR: {}", error_msg));
                     }
                 }
-                _ => {}
+                _ => {
+                    self.add_log(format!("Status: {}", msg_type));
+                }
             }
         }
 
-        if let Some(func) = message.get("current_function").and_then(|v| v.as_str()) {
-            self.current_function = Some(func.to_string());
+        if self.app_loading {
+            if let Some(log_msg) = message.get("log").and_then(|v| v.as_str()) {
+                if log_msg.contains("Application loaded and ready") {
+                    self.app_loading = false;
+                    self.status = "Running".to_string();
+                    self.add_log("Application fully loaded, ready for debugging".to_string());
+                }
+            }
         }
-        if let Some(line) = message.get("current_line").and_then(|v| v.as_u64()) {
-            self.current_line = Some(line as u32);
+    }
+
+    fn handle_checkpoint_message(&mut self, checkpoint: serde_json::Value) {
+        let checkpoint_id = checkpoint.get("id").and_then(|v| v.as_u64()).unwrap_or(0);
+
+        if let Some(payload) = checkpoint.get("payload") {
+            let func_name = payload
+                .get("functionName")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown");
+
+            let args = payload
+                .get("args")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default();
+
+            let context = payload
+                .get("context")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            self.add_log(format!("Checkpoint: {}", func_name));
+
+            self.pending_checkpoints.push(CheckpointData {
+                id: checkpoint_id,
+                function_name: func_name.to_string(),
+                args,
+                context,
+            });
+
+            if self.pending_checkpoints.len() == 1 {
+                self.current_function = Some(func_name.to_string());
+                self.paused = true;
+                self.status = "Paused".to_string();
+            }
+
+            self.timeline_functions.push(TimelineFunction {
+                name: func_name.to_string(),
+                status: FunctionStatus::Pending,
+                checkpoint_id,
+                duration: None,
+            });
         }
     }
 
     pub fn continue_execution(&mut self) {
-        if self.paused {
-            if let Some(ref bridge) = self.ipc_bridge {
-                if bridge
-                    .send_json(&serde_json::json!({
-                    "type": "continue"
-                                    }))
-                    .is_err()
-                {
-                    self.add_log("Failed to send continue command".to_string());
-                    return;
-                }
+        if !self.pending_checkpoints.is_empty() {
+            let checkpoint = self.pending_checkpoints.remove(0);
+
+            self.add_log(format!(
+                "→ Sending continue response for checkpoint ID {}",
+                checkpoint.id
+            ));
+
+            let result = if let Some(ref bridge) = self.ipc_bridge {
+                bridge.send_checkpoint_response_json(&serde_json::json!({
+                    "id": checkpoint.id,
+                    "action": "continue"
+                }))
+            } else {
+                return;
+            };
+
+            if let Err(e) = result {
+                self.add_log(format!("ERROR: Failed to send continue: {}", e));
+                return;
             }
-            self.paused = false;
-            self.pending_checkpoint = None;
-            self.status = "Running".to_string();
+
+            self.add_log("Continue response sent successfully".to_string());
+
+            if let Some(func) = self
+                .timeline_functions
+                .iter_mut()
+                .find(|f| f.checkpoint_id == checkpoint.id)
+            {
+                func.status = FunctionStatus::Completed;
+            }
+
+            if self.pending_checkpoints.is_empty() {
+                self.paused = false;
+                self.status = "Running".to_string();
+                self.current_function = None;
+            } else {
+                self.current_function = Some(self.pending_checkpoints[0].function_name.clone());
+            }
+
             self.add_log("Execution continued".to_string());
         }
     }
 
     pub fn skip_function(&mut self, return_value: serde_json::Value) {
-        if self.paused {
+        if !self.pending_checkpoints.is_empty() {
+            let checkpoint = self.pending_checkpoints.remove(0);
+
             if let Some(ref bridge) = self.ipc_bridge {
-                let _ = bridge.send_json(&serde_json::json!({
-                    "type": "skip",
-                    "returnValue": return_value
-                }));
+                if let Err(e) = bridge.send_checkpoint_response_json(&serde_json::json!({
+                "id": checkpoint.id,
+                "action": "skip",
+                "returnValue": return_value
+                            }))
+                {
+                    self.add_log(format!("ERROR: Failed to send skip response: {}", e));
+                    return;
+                }
             }
-            self.paused = false;
-            self.pending_checkpoint = None;
-            self.status = "Running".to_string();
+
+            if let Some(func) = self
+                .timeline_functions
+                .iter_mut()
+                .find(|f| f.name == checkpoint.function_name)
+            {
+                func.status = FunctionStatus::Skipped;
+            }
+
             self.add_log("Function skipped".to_string());
+
+            if self.pending_checkpoints.is_empty() {
+                self.paused = false;
+                self.status = "Running".to_string();
+                self.current_function = None;
+            } else {
+                self.current_function = Some(self.pending_checkpoints[0].function_name.clone());
+            }
         }
     }
 
@@ -226,7 +300,8 @@ impl DashboardState {
         self.transformed_path = Some(transformed_file.clone());
 
         match IpcBridge::spawn_runtime(&transformed_file) {
-            Ok(bridge) => {
+            Ok(mut bridge) => {
+                bridge.set_log_callback(|_message| {});
                 self.status = "Starting".to_string();
                 self.add_log("Runtime started, loading application...".to_string());
 
@@ -237,7 +312,9 @@ impl DashboardState {
                 }
 
                 self.ipc_bridge = Some(bridge);
-                self.status = "Running".to_string();
+                self.app_loading = true; // Set flag
+                self.status = "Loading".to_string();
+
                 Ok(())
             }
             Err(e) => {
@@ -260,52 +337,13 @@ impl DashboardState {
         self.throbber_state.calc_next();
     }
 
-    pub fn _set_current_checkpoint(
-        &mut self,
-        function: String,
-        line: u32,
-        called_by: Option<String>,
-    ) {
-        self.current_function = Some(function.clone());
-        self.current_line = Some(line);
-        self.called_by = called_by;
-        self.add_log(format!("Paused at {}() line {}", function, line));
-    }
-
-    pub fn _add_timeline_function(&mut self, function: TimelineFunction) {
-        self.timeline_functions.push(function);
-    }
-
-    pub fn _update_function_status(
-        &mut self,
-        name: &str,
-        status: FunctionStatus,
-        duration: Option<String>,
-    ) {
-        if let Some(func) = self.timeline_functions.iter_mut().find(|f| f.name == name) {
-            func.status = status;
-            func.duration = duration;
-        }
-    }
-
     pub fn add_log(&mut self, message: String) {
-        self.logs.push(format!(
-            "[{}] {}",
-            chrono::Local::now().format("%H:%M:%S"),
-            message
-        ));
+        let log_line = format!("[{}] {}", chrono::Local::now().format("%H:%M:%S"), message);
+        self.logs.push(log_line);
         if self.logs.len() > 100 {
             self.logs.remove(0);
         }
-    }
-
-    pub fn _update_execution_time(&mut self, time: String) {
-        self.execution_time = time;
-    }
-
-    pub fn _set_status(&mut self, status: String) {
-        self.status = status.clone();
-        self.add_log(format!("Status: {}", status));
+        self.scroll_logs_to_bottom();
     }
 }
 
@@ -319,11 +357,11 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &mut DashboardState) {
     let main_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(4), // Header
-            Constraint::Length(4), // Current Checkpoint
-            Constraint::Length(4), // Timeline
-            Constraint::Min(4),    // Status/Logs
-            Constraint::Length(3), // Quick Actions
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Length(4),
+            Constraint::Min(4),
+            Constraint::Length(3),
         ])
         .split(area);
 
@@ -349,9 +387,9 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &DashboardState) {
     let line1 = format!("{:<width$}{}", line1_left, line1_right, width = half_width);
 
     let status_display = if state.paused {
-        format!("{} ⏸", state.status).yellow().bold()
+        format!("⏸ Paused ({} queued)", state.pending_checkpoints.len())
     } else {
-        state.status.clone().into()
+        state.status.clone()
     };
 
     let line2_left = format!("Status: {}", status_display);
@@ -361,9 +399,21 @@ fn draw_header(frame: &mut Frame, area: Rect, state: &DashboardState) {
     let combined_text = format!("{}\n{}", line1, line2);
 
     frame.render_widget(
-        Paragraph::new(combined_text).block(Block::default().borders(Borders::ALL).title(
-            Line::from(vec!["[ ".into(), "Dashboard".blue().bold(), " ]".into()]),
-        )),
+        Paragraph::new(combined_text)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(Line::from(vec![
+                        "[ ".into(),
+                        "Dashboard".blue().bold(),
+                        " ]".into(),
+                    ])),
+            )
+            .style(if state.paused {
+                Style::default().fg(Color::Yellow)
+            } else {
+                Style::default()
+            }),
         area,
     );
 }
@@ -372,20 +422,20 @@ fn draw_current_checkpoint(frame: &mut Frame, area: Rect, state: &DashboardState
     let total_width = area.width.saturating_sub(2) as usize;
     let half_width = total_width / 2;
 
-    let line1_left = match &state.current_function {
-        Some(func) => format!("Function: {}()", func),
-        None => "Function: None".to_string(),
+    let line1_left = if let Some(checkpoint) = state.pending_checkpoints.first() {
+        format!("Function: {}()", checkpoint.function_name)
+    } else {
+        "Function: None".to_string()
     };
-    let line1_right = match state.current_line {
-        Some(line) => format!("Line: {}", line),
-        None => "Line: -".to_string(),
-    };
+
+    let line1_right = format!("Queue: {}", state.pending_checkpoints.len());
     let line1 = format!("{:<width$}{}", line1_left, line1_right, width = half_width);
 
     let line2_left = match &state.called_by {
         Some(caller) => format!("Called by: {}()", caller),
         None => "Called by: <root>".to_string(),
     };
+
     let line2_right = format!("Stack depth: {}", state.stack_depth);
     let line2 = format!("{:<width$}{}", line2_left, line2_right, width = half_width);
 
@@ -422,96 +472,114 @@ fn draw_timeline(frame: &mut Frame, area: Rect, state: &mut DashboardState) {
         return;
     }
 
-    let display_functions: Vec<_> = functions.iter().rev().take(5).rev().collect();
-    let constraints: Vec<Constraint> = (0..display_functions.len())
-        .map(|_| Constraint::Percentage(100 / display_functions.len() as u16))
+    let timeline_items: Vec<ListItem> = functions
+        .iter()
+        .map(|func| {
+            let status_symbol = match func.status {
+                FunctionStatus::Completed => "✓",
+                FunctionStatus::Skipped => "⊘",
+                FunctionStatus::Current => "►",
+                FunctionStatus::Pending => "○",
+            };
+
+            let style = match func.status {
+                FunctionStatus::Completed => Style::default().fg(Color::Green),
+                FunctionStatus::Skipped => Style::default().fg(Color::Yellow),
+                FunctionStatus::Current => Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+                FunctionStatus::Pending => Style::default().fg(Color::Gray),
+            };
+
+            let duration_str = func
+                .duration
+                .as_ref()
+                .map(|d| format!(" ({})", d))
+                .unwrap_or_default();
+
+            ListItem::new(Line::from(vec![
+                Span::styled(format!("{} ", status_symbol), style),
+                Span::styled(func.name.clone(), style),
+                Span::styled(duration_str, Style::default().fg(Color::DarkGray)),
+            ]))
+        })
         .collect();
 
-    let timeline_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(constraints)
-        .split(area);
+    let list = List::new(timeline_items).block(Block::default().borders(Borders::ALL).title(
+        Line::from(vec![
+            "[ ".into(),
+            "Execution Timeline".yellow().bold(),
+            " ]".into(),
+        ]),
+    ));
 
-    for (i, func) in display_functions.iter().enumerate() {
-        let borders = if i == 0 {
-            Borders::ALL
-        } else {
-            Borders::TOP | Borders::RIGHT | Borders::BOTTOM
-        };
+    frame.render_widget(list, area);
+}
 
-        let block = if i == 0 {
-            Block::default().borders(borders).title(Line::from(vec![
-                "[ ".into(),
-                format!("Execution Timeline (Last {})", display_functions.len())
-                    .yellow()
-                    .bold(),
-                " ]".into(),
-            ]))
-        } else {
-            Block::default().borders(borders)
-        };
+fn draw_status_logs(frame: &mut Frame, area: Rect, state: &mut DashboardState) {
+    let visible_height = area.height.saturating_sub(2) as usize;
+    let total_logs = state.logs.len();
 
-        match func.status {
-            FunctionStatus::Current => {
-                let inner_area = block.inner(timeline_layout[i]);
-                frame.render_widget(block, timeline_layout[i]);
-                let label = format!("{}()", func.name);
-                let throbber = Throbber::default()
-                    .throbber_set(BRAILLE_SIX)
-                    .label(&label)
-                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
+    state.log_visible_height = visible_height;
 
-                frame.render_stateful_widget(throbber, inner_area, &mut state.throbber_state);
-            }
-            _ => {
-                let status_symbol = match func.status {
-                    FunctionStatus::Completed => "✓",
-                    FunctionStatus::Skipped => "⏭",
-                    FunctionStatus::Pending => "○",
-                    FunctionStatus::Current => unreachable!(),
-                };
+    let start_idx = state.log_scroll_offset;
+    let end_idx = (start_idx + visible_height).min(total_logs);
 
-                let default_duration = "?ms".to_string();
-                let duration = func.duration.as_ref().unwrap_or(&default_duration);
-                let content = format!("{} {}()\n{}", status_symbol, func.name, duration);
+    let display_logs: Vec<_> = state.logs[start_idx..end_idx].iter().collect();
 
-                frame.render_widget(
-                    Paragraph::new(content)
-                        .block(block)
-                        .alignment(ratatui::layout::Alignment::Center),
-                    timeline_layout[i],
-                );
-            }
-        }
+    let log_items: Vec<ListItem> = display_logs
+        .iter()
+        .map(|log| {
+            let style = if log.contains("ERROR") || log.contains("error") {
+                Style::default().fg(Color::Red)
+            } else if log.contains("WARN") || log.contains("warn") {
+                Style::default().fg(Color::Yellow)
+            } else if log.contains("→") || log.contains("←") {
+                Style::default().fg(Color::Cyan)
+            } else if log.contains("Checkpoint:") {
+                Style::default().fg(Color::Magenta)
+            } else {
+                Style::default().fg(Color::Gray)
+            };
+
+            ListItem::new(Line::from(Span::styled(log.as_str(), style)))
+        })
+        .collect();
+
+    let list = List::new(log_items).block(Block::default().borders(Borders::ALL).title(
+        Line::from(vec![
+            "[ ".into(),
+            "Status & Logs".cyan().bold(),
+            format!(" ({}/{}) ", end_idx, total_logs).into(),
+            " ]".into(),
+        ]),
+    ));
+
+    frame.render_widget(list, area);
+
+    if total_logs > visible_height {
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(Some("↑"))
+            .end_symbol(Some("↓"))
+            .track_symbol(Some("│"))
+            .thumb_symbol("█");
+
+        let mut scrollbar_state = ScrollbarState::new(total_logs.saturating_sub(visible_height))
+            .position(state.log_scroll_offset);
+
+        let scrollbar_area = area.inner(Margin {
+            vertical: 1,
+            horizontal: 0,
+        });
+
+        frame.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state);
     }
 }
 
-fn draw_status_logs(frame: &mut Frame, area: Rect, state: &DashboardState) {
-    let display_logs: Vec<_> = state.logs.iter().rev().take(30).rev().collect();
-    let logs_text = display_logs
-        .iter()
-        .map(|s| s.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    frame.render_widget(
-        Paragraph::new(logs_text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(Line::from(vec![
-                        "[ ".into(),
-                        "Status & Logs".cyan().bold(),
-                        " ]".into(),
-                    ])),
-            )
-            .scroll((0, 0)),
-        area,
-    );
-}
-
 fn draw_quick_actions(frame: &mut Frame, area: Rect) {
-    let actions_text = "[C] Continue    [S] Skip Function    [E] Edit Variables    [P] Profile    [V] View Stack    [H] History    [Q] Quit";
+    let actions_text =
+        "[C] Continue    [S] Skip Function    [↑↓] Scroll Logs    [H] History    [Q] Quit";
+
     frame.render_widget(
         Paragraph::new(actions_text)
             .block(

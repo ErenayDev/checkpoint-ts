@@ -19,8 +19,12 @@ categories = ["development-tools::debugging", "command-line-utilities"]
 [workspace.dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+criterion = { version = "0.8.2", features = ["html_reports"] }
 
 # The profile that 'dist' will build with
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+[profile.release]
+debug = true

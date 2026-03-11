@@ -1,6 +1,6 @@
 use crate::utils::project_context::ProjectContext;
 use crate::utils::transform_cache::TransformCache;
-use checkpoint_parser::transform_code;
+use checkpoint_parser::swc::transform_code;
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;

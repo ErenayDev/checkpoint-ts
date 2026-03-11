@@ -23,3 +23,10 @@ target
 
 ## Cargo-run-bin specific
 .bin/
+
+## Generated folder by Node
+node_modules
+
+## Oranda output
+/public/
+/doc/book/

@@ -1,3 +1,15 @@
 {
-  "main": "index.ts"
+  "name": "checkpoint-ts",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "workspaces": [
+    "runtime"
+  ],
+  "scripts": {
+    "fix:prettier": "prettier --config .prettierrc --write .",
+    "lint:prettier": "prettier --config .prettierrc --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.8.1"
+  }
 }

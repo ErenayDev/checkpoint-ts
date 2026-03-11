@@ -3,7 +3,7 @@ repos:
     rev: v4.4.0
     hooks:
       - id: trailing-whitespace
-      - id: end-of-file-fixer
+      #      - id: end-of-file-fixer
       - id: check-merge-conflict
 
   - repo: https://github.com/doublify/pre-commit-rust
@@ -12,3 +12,13 @@ repos:
       - id: fmt
       - id: cargo-check
       - id: clippy
+
+  - repo: local
+    hooks:
+      - id: app-prettier
+        name: run prettier
+        language: system
+        files: ^.*$
+        types_or: [javascript, json]
+        entry: |
+          bash -c 'bun run fix:prettier "${@}"' --

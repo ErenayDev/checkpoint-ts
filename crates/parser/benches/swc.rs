@@ -4,11 +4,11 @@ fn setup_tracing() {
     #[cfg(feature = "bench-trace")]
     {
         use tracing_subscriber::fmt::format::FmtSpan;
-        tracing_subscriber::fmt()
+        let _ = tracing_subscriber::fmt()
             .with_span_events(FmtSpan::CLOSE)
             .with_target(false)
             .with_level(false)
-            .init();
+            .try_init();
     }
 }
 
@@ -18,7 +18,7 @@ fn bench_swc(_c: &mut Criterion) {
         env!("CARGO_MANIFEST_DIR"),
         "/../../examples/transform_examples/index.ts"
     ))
-    .unwrap();
+    .expect("Benchmark sample file not found: examples/transform_examples/index.ts");
 
     #[cfg(feature = "bench-trace")]
     {
@@ -27,7 +27,11 @@ fn bench_swc(_c: &mut Criterion) {
 
     #[cfg(not(feature = "bench-trace"))]
     _c.bench_function("swc::total", |b| {
-        b.iter(|| checkpoint_parser::swc::transform_code(&source, "index.ts", false).unwrap());
+        b.iter(|| {
+            std::hint::black_box(
+                checkpoint_parser::swc::transform_code(&source, "index.ts", false).unwrap(),
+            )
+        });
     });
 }
 

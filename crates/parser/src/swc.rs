@@ -17,7 +17,7 @@ use swc_core::ecma::parser::{Parser, StringInput, Syntax};
 use swc_core::ecma::transforms::typescript::{Config as TsConfig, typescript};
 use swc_core::ecma::visit::{VisitMut, VisitMutWith};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExprId(Span);
 
 impl From<Span> for ExprId {
@@ -26,7 +26,7 @@ impl From<Span> for ExprId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ExprContext {
     TernaryCondition,
     TernaryConsequent,
@@ -97,7 +97,8 @@ impl ContextAnalyzer {
     fn mark_function_call(&mut self, expr: &CallExpr) {
         let expr_id = ExprId::from(expr.span);
         self.function_calls.insert(expr_id);
-        self.mark_expression(&Expr::Call(expr.clone()), ExprContext::FunctionCall);
+        self.expression_contexts
+            .insert(expr_id, ExprContext::FunctionCall);
     }
 }
 
@@ -139,12 +140,11 @@ impl VisitMut for ContextAnalyzer {
             _ => (ExprContext::BinaryLeft, ExprContext::BinaryRight),
         };
 
-        self.with_context(left_context.clone(), |analyzer| {
+        self.with_context(left_context, |analyzer| {
             analyzer.mark_expression(&node.left, left_context);
             node.left.visit_mut_with(analyzer);
         });
-
-        self.with_context(right_context.clone(), |analyzer| {
+        self.with_context(right_context, |analyzer| {
             analyzer.mark_expression(&node.right, right_context);
             node.right.visit_mut_with(analyzer);
         });

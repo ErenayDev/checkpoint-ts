@@ -111,7 +111,8 @@ impl VisitMut for ContextAnalyzer {
     fn visit_mut_new_expr(&mut self, node: &mut NewExpr) {
         let expr_id = ExprId::from(node.span);
         self.function_calls.insert(expr_id);
-        self.mark_expression(&Expr::New(node.clone()), ExprContext::NewExpression);
+        self.expression_contexts
+            .insert(expr_id, ExprContext::NewExpression);
         node.visit_mut_children_with(self);
     }
 
@@ -404,6 +405,7 @@ impl VisitMut for DualPhaseTransformer {
         node.visit_mut_children_with(self);
 
         if self.checkpoint_depth > checkpoint_count_before && !node.function.is_async {
+            #[cfg(all(not(feature = "bench-trace"), debug_assertions))]
             if self.promoted_functions.len() < 10 {
                 eprintln!(
                     "Warning: Function '{}' is being promoted to async",
@@ -426,6 +428,7 @@ impl VisitMut for DualPhaseTransformer {
 
         if self.checkpoint_depth > checkpoint_count_before && !node.function.is_async {
             if let Some(ref ident) = node.ident {
+                #[cfg(all(not(feature = "bench-trace"), debug_assertions))]
                 if self.promoted_functions.len() < 10 {
                     eprintln!(
                         "Warning: Function '{}' is being promoted to async",
@@ -531,6 +534,7 @@ impl VisitMut for DualPhaseTransformer {
 
         let import_specifier = ImportSpecifier::Named(named_specifier);
 
+        // TODO: Replace with proper package import when published to npm. e.g. @checkpoint-ts/runtime
         let import_decl = ImportDecl {
             span: DUMMY_SP,
             specifiers: vec![import_specifier],

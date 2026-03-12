@@ -1,13 +1,13 @@
 [package]
 name = "checkpoint-parser"
 description = "TypeScript/JavaScript parser for checkpoint-ts"
-readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "README.md"
 
 [dependencies]
 checkpoint-shared = { version = "0.2.0-beta.1", path = "../shared" }

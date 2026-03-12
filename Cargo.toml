@@ -12,7 +12,6 @@ description = "Interactive checkpoint system for TypeScript/JavaScript developme
 authors = ["ErenayDev <erenaydev@proton.me>"]
 homepage = "https://github.com/ErenayDev/checkpoint-ts"
 documentation = "https://docs.rs/checkpoint-ts"
-readme = "README.md"
 keywords = ["debug", "typescript", "javascript", "tui", "checkpoint"]
 categories = ["development-tools::debugging", "command-line-utilities"]
 

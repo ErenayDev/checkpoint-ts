@@ -1,5 +1,7 @@
 [package]
 name = "checkpoint-shared"
+description = "Shared types and utilities for checkpoint-ts"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

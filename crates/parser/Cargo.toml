@@ -1,5 +1,7 @@
 [package]
 name = "checkpoint-parser"
+description = "TypeScript/JavaScript parser for checkpoint-ts"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,7 +10,7 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-checkpoint-shared = { version = "0.1.3", path = "../shared" }
+checkpoint-shared = { version = "0.2.0-beta.1", path = "../shared" }
 swc_core = { version = "58.0.4", features = [
   "__common",
   "__ecma",

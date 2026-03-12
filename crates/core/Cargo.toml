@@ -1,5 +1,6 @@
 [package]
 name = "checkpoint-ts"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,8 +20,8 @@ name = "checkpoint"
 path = "src/main.rs"
 
 [dependencies]
-checkpoint-shared = { version = "0.1.3", path = "../shared" }
-checkpoint-parser = { version = "0.1.3", path = "../parser" }
+checkpoint-shared = { version = "0.2.0-beta.1", path = "../shared" }
+checkpoint-parser = { version = "0.2.0-beta.1", path = "../parser" }
 serde.workspace = true
 serde_json.workspace = true
 chrono = { version = "0.4", features = ["serde"] }

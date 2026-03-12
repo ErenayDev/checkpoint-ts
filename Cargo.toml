@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["crates/core", "crates/parser", "crates/shared"]
+members = ["crates/shared", "crates/parser", "crates/core"]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.2.0-beta.1"
 edition = "2024"
 rust-version = "1.87"
 license = "GPL-3.0-or-later"

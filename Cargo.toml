@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = ["crates/shared", "crates/parser", "crates/core"]
+
+[workspace.package]
+version = "0.2.0-beta.1"
+edition = "2024"
+rust-version = "1.87"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ErenayDev/checkpoint-ts"
+description = "Interactive checkpoint system for TypeScript/JavaScript development. Debug with TUI, inspect state, skip functions, inject values."
+authors = ["ErenayDev <erenaydev@proton.me>"]
+homepage = "https://github.com/ErenayDev/checkpoint-ts"
+documentation = "https://docs.rs/checkpoint-ts"
+keywords = ["debug", "typescript", "javascript", "tui", "checkpoint"]
+categories = ["development-tools::debugging", "command-line-utilities"]
+
+[workspace.dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+criterion = { version = "0.8.2", features = ["html_reports"] }
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[profile.release]
+debug = true

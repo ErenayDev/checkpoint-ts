@@ -1,0 +1,42 @@
+{
+  "project": {
+    "name": "Checkpoint.ts",
+    "repository": "https://github.com/ErenayDev/checkpoint-ts",
+    "license": "GPL-3.0-or-later"
+  },
+  "styles": {
+    "theme": "axodark",
+    "favicon": "https://erenaydev.com.tr/favicon.ico"
+  },
+  "marketing": {
+    "social": {
+      "image": "https://erenaydev.com.tr/favicon.png",
+      "image_alt": "erenay",
+      "twitter_account": "@erenaydev"
+    }
+  },
+  "build": {
+    "path_prefix": "checkpoint-ts"
+  },
+  "components": {
+    "changelog": true,
+    "funding": {
+      "yml_path": ".github/FUNDING.yml",
+      "preferred_funding": "github"
+    },
+    "mdbook": {
+      "path": "./doc"
+    },
+    "artifacts": {
+      "package_managers": {
+        "preferred": {
+          "cargo": "cargo install checkpoint-ts"
+        },
+        "additional": {
+          "binstall": "cargo binstall checkpoint-ts",
+          "aur": "yay -S checkpoint"
+        }
+      }
+    }
+  }
+}

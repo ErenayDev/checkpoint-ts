@@ -1,0 +1,37 @@
+[package]
+name = "checkpoint-parser"
+description = "TypeScript/JavaScript parser for checkpoint-ts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+
+[dependencies]
+checkpoint-shared = { version = "0.2.0-beta.1", path = "../shared" }
+swc_core = { version = "65.0.2", features = [
+  "__common",
+  "__ecma",
+  "ecma_ast",
+  "ecma_parser",
+  "ecma_transforms_typescript",
+  "ecma_codegen",
+  "ecma_visit",
+  "__testing_transform",
+] } # 58.0.4
+serde.workspace = true
+serde_json.workspace = true
+tracing = { version = "0.1.44", optional = true }
+
+[dev-dependencies]
+criterion.workspace = true
+tracing-subscriber = { version = "0.3.22", features = ["fmt"] }
+
+[[bench]]
+name = "swc"
+harness = false
+
+[features]
+bench-trace = ["tracing"]

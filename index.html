@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" id="oranda" class="dark axo">
+  <head>
+    <title>Checkpoint.ts</title>
+    
+    
+      <link rel="icon" href="/checkpoint-ts/favicon.ico" />
+    
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Checkpoint.ts" />
+    
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta property="og:image" content="https://erenaydev.com.tr/favicon.png" />
+    
+    
+      <meta property="og:image:alt" content="erenay" />
+    
+    
+      <meta name="twitter:creator" content="@erenaydev" />
+      <meta name="twitter:site" content="@erenaydev" />
+    
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+    <link rel="stylesheet" href="/checkpoint-ts/oranda-v0.6.1.css" />
+    
+    
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-body">
+        
+          <div class="repo_banner">
+            <a href="https://github.com/ErenayDev/checkpoint-ts">
+              <div class="github-icon" aria-hidden="true"></div>
+              Check out our GitHub!
+            </a>
+          </div>
+        
+
+        <main>
+          <header>
+            
+            <h1 class="title">Checkpoint.ts</h1>
+            
+  <nav class="nav">
+    <ul>
+      <li><a href="/checkpoint-ts/">Home</a></li>
+
+      
+
+      
+        <li><a href="/checkpoint-ts/artifacts/">Install</a></li>
+      
+
+      
+        <li><a href="/checkpoint-ts/book/">Docs</a></li>
+      
+
+      
+        <li><a href="/checkpoint-ts/funding/">Funding</a></li>
+      
+
+      
+        <li><a href="/checkpoint-ts/changelog/">Changelog</a></li>
+      
+    </ul>
+  </nav>
+
+          </header>
+
+          
+
+
+    <h1>Checkpoint.ts</h1>
+<p><a href="https://codecov.io/gh/ErenayDev/checkpoint-ts" rel="noopener noreferrer"><img src="https://codecov.io/gh/ErenayDev/checkpoint-ts/branch/main/graph/badge.svg" alt="codecov"></a>
+<a href="https://github.com/ErenayDev/checkpoint-ts/actions" rel="noopener noreferrer"><img src="https://github.com/ErenayDev/checkpoint-ts/workflows/CI/badge.svg" alt="CI"></a>
+<a href="https://crates.io/crates/checkpoint-ts" rel="noopener noreferrer"><img src="https://img.shields.io/crates/v/checkpoint-ts" alt="Crates.io"></a>
+<a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener noreferrer"><img src="https://img.shields.io/crates/l/checkpoint-ts" alt="License: GPL-3.0-or-later"></a>
+<a href="https://www.rust-lang.org" rel="noopener noreferrer"><img src="https://img.shields.io/crates/msrv/checkpoint-ts?label=rust&amp;color=orange" alt="Rust Version"></a>
+<a href="https://crates.io/crates/checkpoint-ts" rel="noopener noreferrer"><img src="https://img.shields.io/crates/d/checkpoint-ts.svg?color=blue" alt="Downloads"></a></p>
+<p>Interactive checkpoint system for TypeScript/JavaScript.</p>
+<h2>Quick Start</h2>
+<p>See <a href="./doc/src/INSTALLATION.md" rel="noopener noreferrer">INSTALLATION.md</a></p>
+<h2>Key Features</h2>
+<p>When you run the program, it first parses your code using ASTs and injects checkpointing functions.
+Then it injects runtime code, and a TUI appears for you to interact with.
+When you set a checkpoint, the function name along with its parameters and variables are written to the cache (in your <code>.checkpoint</code> folder).
+To run the checkpointed function, simply do so—you can edit the parameters and variables beforehand.
+You can also profile execution times for each function.
+Edit anything you want—try it yourself!</p>
+<h2>Usage</h2>
+<h3>Basic Usage</h3>
+<p>Currently, only <a href="https://bun.sh" rel="noopener noreferrer">Bun</a> is available. Check again in future for more runtimes.</p>
+<pre style="background-color:#263238;"><span style="color:#82aaff;">checkpoint</span><span style="color:#89ddff;"> -</span><span style="color:#f78c6c;">i</span><span style="color:#82aaff;"> script.ts
+</span></pre>
+
+<h2>Supported Features</h2>
+<p>Covers approximately 85% of TypeScript/JavaScript ecosystem code.</p>
+<h3>Future Optimizations</h3>
+<ul>
+<li>Migration to <a href="https://oxc.rs" rel="noopener noreferrer">oxc</a> from <a href="https://swc.rs" rel="noopener noreferrer">swc</a> for improved performance.</li>
+<li>Dead-code elimination using <a href="https://github.com/kermanx/jsshaker" rel="noopener noreferrer">jsshaker</a> for O(n) to O(1) optimization.</li>
+</ul>
+<h2>Contributing</h2>
+<p>We welcome contributions! Please see our <a href="CONTRIBUTING.md" rel="noopener noreferrer">Contributing Guide</a> for details.</p>
+<h2>License</h2>
+<p>Copyright (c) ErenayDev <a href="mailto:erenaydev@proton.me" rel="noopener noreferrer">erenaydev@proton.me</a></p>
+<p>This project is licensed under the GPL-3.0-or-later license (<a href="./LICENSE" rel="noopener noreferrer">LICENSE</a> or <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener noreferrer">https://www.gnu.org/licenses/gpl-3.0.html</a>)</p>
+<h2>Sponsors</h2>
+<p>Special thanks to our sponsors who make this project possible:</p>
+<p>
+  <a href="https://github.com/sponsors/ErenayDev" rel="noopener noreferrer">
+    <img src="https://raw.githubusercontent.com/ErenayDev/ErenayDev/refs/heads/main/sponsorkit/sponsors.svg" alt="ErenayDev's sponsors">
+  </a>
+</p>
+<h2>Acknowledgments</h2>
+<p>Built with:</p>
+<ul>
+<li><a href="https://swc.rs/" rel="noopener noreferrer">SWC</a> for TypeScript/JavaScript parsing</li>
+<li><a href="https://ratatui.rs/" rel="noopener noreferrer">Ratatui</a> for terminal user interface</li>
+<li><a href="https://tokio.rs/" rel="noopener noreferrer">Tokio</a> for async runtime support</li>
+</ul>
+
+
+
+        </main>
+      </div>
+
+      <footer>
+        
+          <a href="https://github.com/ErenayDev/checkpoint-ts"><div class="github-icon" aria-hidden="true"></div></a>
+        
+        <span>
+          Checkpoint.ts, GPL-3.0-or-later
+        </span>
+      </footer>
+    </div>
+
+    
+    
+
+    
+
+    <script src="/checkpoint-ts/artifacts.js"></script>
+
+
+  </body>
+</html>
